@@ -70,9 +70,24 @@
 
       <div class="nav-right">
         <!-- Live System Status -->
-        <div class="status-indicator-pill">
-          <span class="status-dot-green"></span>
-          <span>NPCI Core Online</span>
+        <div class="status-indicator-pill" id="nav-system-status">
+          <span class="status-dot-green" id="nav-status-dot"></span>
+          <span id="nav-status-text">Channel Secure</span>
+        </div>
+
+        <!-- Channel Interception Simulator Toggle -->
+        <div class="channel-interception-toggle" id="channel-interception-toggle">
+          <span class="toggle-icon-wrap">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+          </span>
+          <span class="toggle-lbl">Channel Intercept (Eve):</span>
+          <label class="switch-clean">
+            <input type="checkbox" id="eve-toggle-switch" />
+            <span class="slider-clean"></span>
+          </label>
+          <span class="toggle-state font-mono" id="eve-toggle-state">OFF</span>
         </div>
 
         <!-- User Profile Pill -->
@@ -625,23 +640,23 @@
     </div>
   </div>
 
-  <!-- UPI PAYMENT SUCCESS / RECEIPT MODAL -->
+  <!-- UPI PAYMENT SUCCESS / FAILED RECEIPT MODAL -->
   <div class="modal-overlay hidden" id="modal-receipt-overlay">
     <div class="receipt-modal-container">
-      <!-- Success Header Banner -->
-      <div class="receipt-banner-header">
-        <div class="receipt-check-circle">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Dynamic Header Banner (Success / Error Detected) -->
+      <div class="receipt-banner-header" id="receipt-banner-header">
+        <div class="receipt-check-circle" id="receipt-icon-container">
+          <svg id="receipt-svg-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="20 6 9 17 4 12"></polyline>
           </svg>
         </div>
-        <div class="receipt-main-title">Payment Successful</div>
+        <div class="receipt-main-title" id="receipt-main-title">Payment Successful</div>
         <div class="receipt-time-stamp" id="receipt-timestamp">16 Sep 2026, 12:00 PM</div>
       </div>
 
       <div class="receipt-inner-body">
         <div class="receipt-amount-display">
-          <span class="amount-title-lbl">Settled Amount</span>
+          <span class="amount-title-lbl" id="receipt-amount-title">Settled Amount</span>
           <span class="amount-number-val font-mono" id="receipt-amount-val">₹500.00</span>
         </div>
 
@@ -655,7 +670,7 @@
           </div>
 
           <div class="info-row">
-            <span class="info-lbl">Debited Account:</span>
+            <span class="info-lbl">Debit Account:</span>
             <div class="info-val-col">
               <span class="val-bold">HDFC Bank •••• 4920</span>
               <span class="val-mono font-mono" id="receipt-payer-upi">spandana@okupi</span>
@@ -676,6 +691,21 @@
             <span class="info-lbl">Purpose Note:</span>
             <span class="val-bold" id="receipt-note-val">Corporate Payment Settlement</span>
           </div>
+        </div>
+
+        <!-- Error Diagnostic Box (shown only when payment fails / Eve detected) -->
+        <div class="error-diagnostic-card hidden" id="receipt-error-diagnostic">
+          <div class="error-diagnostic-header">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <span class="error-diagnostic-title">SECURITY ERROR DETECTED</span>
+          </div>
+          <p class="error-diagnostic-text" id="receipt-error-text">
+            Unauthorized channel interception detected. Communication compromised. Payment was blocked to protect funds. Zero balance was deducted.
+          </p>
         </div>
       </div>
 

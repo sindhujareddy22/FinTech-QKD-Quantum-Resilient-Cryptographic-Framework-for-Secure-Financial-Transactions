@@ -1337,6 +1337,137 @@ body {
   gap: 16px;
 }
 
+/* Channel Interception Toggle */
+.channel-interception-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+}
+
+.channel-interception-toggle.active {
+  background: rgba(244, 63, 94, 0.15);
+  border-color: rgba(244, 63, 94, 0.5);
+  box-shadow: 0 0 15px rgba(244, 63, 94, 0.25);
+}
+
+.toggle-icon-wrap {
+  display: flex;
+  align-items: center;
+  color: #94a3b8;
+}
+
+.channel-interception-toggle.active .toggle-icon-wrap {
+  color: #f43f5e;
+}
+
+.toggle-lbl {
+  color: #cbd5e1;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.toggle-state {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #94a3b8;
+}
+
+.channel-interception-toggle.active .toggle-state {
+  color: #f43f5e;
+}
+
+/* Clean Switch */
+.switch-clean {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  height: 18px;
+}
+
+.switch-clean input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider-clean {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: #334155;
+  transition: .25s;
+  border-radius: 20px;
+}
+
+.slider-clean:before {
+  position: absolute;
+  content: "";
+  height: 12px;
+  width: 12px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .25s;
+  border-radius: 50%;
+}
+
+input:checked + .slider-clean {
+  background-color: #f43f5e;
+}
+
+input:checked + .slider-clean:before {
+  transform: translateX(14px);
+}
+
+/* Receipt Modal & Error Mode */
+.receipt-banner-header.error-mode {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.25) 0%, rgba(15, 23, 42, 0.95) 100%);
+}
+
+.receipt-check-circle.error-circle {
+  background: #ef4444;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+}
+
+.error-diagnostic-card {
+  padding: 14px 16px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.error-diagnostic-card.hidden {
+  display: none;
+}
+
+.error-diagnostic-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.error-diagnostic-title {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #f87171;
+  letter-spacing: 0.04em;
+}
+
+.error-diagnostic-text {
+  font-size: 0.76rem;
+  color: #fecaca;
+  line-height: 1.4;
+}
+
 .receipt-amount-display {
   display: flex;
   justify-content: space-between;
@@ -1347,6 +1478,7 @@ body {
 
 .amount-title-lbl { font-size: 0.85rem; color: #94a3b8; }
 .amount-number-val { font-size: 1.6rem; font-weight: 800; color: #34d399; }
+.amount-number-val.error-val { color: #f87171; }
 
 .receipt-info-grid {
   display: flex;

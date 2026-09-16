@@ -1,6 +1,6 @@
 /**
  * QuPay UPI Web Application — Client Controller
- * Professional, clean FinTech UPI payment experience.
+ * Professional, clean FinTech UPI payment experience with live channel intercept error detection.
  */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let transactionsHistory = [];
   let currentFilter = "ALL";
   let isProcessingPayment = false;
+  let eveActive = false;
   let currentPayee = {
     name: "Bob Sharma",
     upi: "bob@okhdfcbank",
@@ -58,13 +59,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = "sawtooth";
-        osc.frequency.setValueAtTime(300, now);
-        gain.gain.setValueAtTime(0.15, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        osc.frequency.setValueAtTime(320, now);
+        osc.frequency.linearRampToValueAtTime(180, now + 0.25);
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start(now);
-        osc.stop(now + 0.2);
+        osc.stop(now + 0.25);
       }
     } catch (e) {
       console.warn("Audio playback not supported", e);
@@ -82,7 +84,7 @@ document.addEventListener("DOMContentLoaded", () => {
       toast.style.opacity = "0";
       toast.style.transform = "translateX(50px)";
       setTimeout(() => toast.remove(), 350);
-    }, 4000);
+    }, 4500);
   }
 
   // Navigation Tab Switching
@@ -127,6 +129,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // Header Elements & Eve Toggle
+  const navSystemStatus = document.getElementById("nav-system-status");
+  const navStatusDot = document.getElementById("nav-status-dot");
+  const navStatusText = document.getElementById("nav-status-text");
+  const channelInterceptionToggle = document.getElementById("channel-interception-toggle");
+  const eveToggleSwitch = document.getElementById("eve-toggle-switch");
+  const eveToggleState = document.getElementById("eve-toggle-state");
+
   // Balance & KPI Elements
   const mainBalanceDigits = document.getElementById("main-balance-digits");
   const balanceEyeBtn = document.getElementById("balance-eye-btn");
@@ -169,18 +179,71 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Receipt Modal Elements
   const modalReceiptOverlay = document.getElementById("modal-receipt-overlay");
+  const receiptBannerHeader = document.getElementById("receipt-banner-header");
+  const receiptIconContainer = document.getElementById("receipt-icon-container");
+  const receiptMainTitle = document.getElementById("receipt-main-title");
   const receiptTimestamp = document.getElementById("receipt-timestamp");
+  const receiptAmountTitle = document.getElementById("receipt-amount-title");
   const receiptAmountVal = document.getElementById("receipt-amount-val");
   const receiptPayeeName = document.getElementById("receipt-payee-name");
   const receiptPayeeUpi = document.getElementById("receipt-payee-upi");
   const receiptPayerUpi = document.getElementById("receipt-payer-upi");
   const receiptUtrNo = document.getElementById("receipt-utr-no");
   const receiptNoteVal = document.getElementById("receipt-note-val");
+  const receiptErrorDiagnostic = document.getElementById("receipt-error-diagnostic");
+  const receiptErrorText = document.getElementById("receipt-error-text");
   const btnCloseReceipt = document.getElementById("btn-close-receipt");
 
   // QR Code Elements
   const btnCopyUpi = document.getElementById("btn-copy-upi");
   const myUpiIdText = document.getElementById("my-upi-id-text");
+
+  // Eve Channel Interception Switch Handling
+  eveToggleSwitch.addEventListener("change", async (e) => {
+    const enabled = e.target.checked;
+    try {
+      const res = await fetch("/api/eve/toggle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: enabled, rate: 1.0 }),
+      });
+      const data = await res.json();
+      updateEveState(data.eve_enabled);
+      if (data.eve_enabled) {
+        showToast("Error Simulation: Channel interception (Eve) is ACTIVE. The next payment will trigger an error.", "error");
+        playSound("error");
+      } else {
+        showToast("Channel restored to Secure state.", "success");
+        playSound("tap");
+      }
+    } catch (err) {
+      console.error("Failed to toggle intercept:", err);
+    }
+  });
+
+  function updateEveState(isActive) {
+    eveActive = isActive;
+    eveToggleSwitch.checked = isActive;
+    if (isActive) {
+      channelInterceptionToggle.classList.add("active");
+      eveToggleState.textContent = "ACTIVE";
+      navSystemStatus.style.background = "rgba(239, 68, 68, 0.15)";
+      navSystemStatus.style.borderColor = "rgba(239, 68, 68, 0.4)";
+      navSystemStatus.style.color = "#f87171";
+      navStatusDot.style.background = "#ef4444";
+      navStatusDot.style.boxShadow = "0 0 10px #ef4444";
+      navStatusText.textContent = "Channel Compromised";
+    } else {
+      channelInterceptionToggle.classList.remove("active");
+      eveToggleState.textContent = "OFF";
+      navSystemStatus.style.background = "rgba(16, 185, 129, 0.12)";
+      navSystemStatus.style.borderColor = "rgba(16, 185, 129, 0.35)";
+      navSystemStatus.style.color = "#34d399";
+      navStatusDot.style.background = "#10b981";
+      navStatusDot.style.boxShadow = "0 0 10px #10b981";
+      navStatusText.textContent = "Channel Secure";
+    }
+  }
 
   // Balance Visibility Toggle
   balanceEyeBtn.addEventListener("click", () => {
@@ -271,6 +334,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const res = await fetch("/api/security/status");
       const data = await res.json();
       userBalance = data.user_balance;
+      updateEveState(data.eve_enabled);
 
       if (isBalanceVisible) {
         mainBalanceDigits.textContent = `₹${userBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
@@ -384,21 +448,68 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const data = await res.json();
       const txn = data.transaction;
+      const isSettled = txn.status === "SETTLED";
 
       setTimeout(() => {
-        playSound("success");
-        showToast(`Payment of ₹${amount.toLocaleString("en-IN")} settled to ${payeeName}`, "success");
+        if (!isSettled || data.eve_detected) {
+          // PAYMENT FAILED / ERROR DETECTED FLOW
+          playSound("error");
+          showToast(`Error Detected: Channel interception detected. Payment of ₹${amount.toLocaleString("en-IN")} failed.`, "error");
 
-        // Populate Receipt Modal
-        receiptTimestamp.textContent = txn.timestamp;
-        receiptAmountVal.textContent = `₹${amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
-        receiptPayeeName.textContent = txn.payee_name;
-        receiptPayeeUpi.textContent = txn.payee_upi;
-        receiptPayerUpi.textContent = txn.payer_upi;
-        receiptUtrNo.textContent = txn.txn_id;
-        receiptNoteVal.textContent = txn.note;
+          // Render Error Mode Receipt
+          receiptBannerHeader.className = "receipt-banner-header error-mode";
+          receiptIconContainer.className = "receipt-check-circle error-circle";
+          receiptIconContainer.innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          `;
+          receiptMainTitle.textContent = "Payment Failed (Error Detected)";
+          receiptTimestamp.textContent = txn.timestamp;
+          receiptAmountTitle.textContent = "Amount (Unprocessed)";
+          receiptAmountVal.textContent = `₹${amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+          receiptAmountVal.className = "amount-number-val font-mono error-val";
 
-        modalReceiptOverlay.classList.remove("hidden");
+          receiptPayeeName.textContent = txn.payee_name;
+          receiptPayeeUpi.textContent = txn.payee_upi;
+          receiptPayerUpi.textContent = txn.payer_upi;
+          receiptUtrNo.textContent = txn.txn_id;
+          receiptNoteVal.textContent = txn.note;
+
+          // Reveal error diagnostic card
+          receiptErrorDiagnostic.classList.remove("hidden");
+          receiptErrorText.textContent = txn.abort_reason || "Error Detected: Unauthorized communication channel interception detected. Payment was blocked to prevent compromise. Zero balance was deducted from your account.";
+
+          modalReceiptOverlay.classList.remove("hidden");
+        } else {
+          // PAYMENT SUCCESS FLOW
+          playSound("success");
+          showToast(`Payment of ₹${amount.toLocaleString("en-IN")} settled to ${payeeName}`, "success");
+
+          // Render Success Mode Receipt
+          receiptBannerHeader.className = "receipt-banner-header";
+          receiptIconContainer.className = "receipt-check-circle";
+          receiptIconContainer.innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          `;
+          receiptMainTitle.textContent = "Payment Successful";
+          receiptTimestamp.textContent = txn.timestamp;
+          receiptAmountTitle.textContent = "Settled Amount";
+          receiptAmountVal.textContent = `₹${amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+          receiptAmountVal.className = "amount-number-val font-mono";
+
+          receiptPayeeName.textContent = txn.payee_name;
+          receiptPayeeUpi.textContent = txn.payee_upi;
+          receiptPayerUpi.textContent = txn.payer_upi;
+          receiptUtrNo.textContent = txn.txn_id;
+          receiptNoteVal.textContent = txn.note;
+
+          receiptErrorDiagnostic.classList.add("hidden");
+          modalReceiptOverlay.classList.remove("hidden");
+        }
 
         fetchAccountStatus();
         fetchHistory();
@@ -468,7 +579,9 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="font-mono" style="font-weight: 800; color: ${isSettled ? '#34d399' : '#f87171'}; font-size: 0.95rem;">
             ${isSettled ? '-' : ''}₹${txn.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
           </div>
-          <div style="font-size: 0.68rem; color: #94a3b8;">${isSettled ? 'Settled' : 'Failed'}</div>
+          <div style="font-size: 0.68rem; color: ${isSettled ? '#94a3b8' : '#f87171'}; font-weight: ${isSettled ? '400' : '700'};">
+            ${isSettled ? 'Settled' : 'Error Detected'}
+          </div>
         </div>
       `;
       recentTxnsFeed.appendChild(div);
@@ -509,7 +622,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <td class="font-mono" style="font-weight: 800; font-size: 0.95rem;">₹${txn.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
         <td>
           <span class="status-badge-pill ${isSettled ? 'success' : 'failed'}">
-            ${isSettled ? 'Settled' : 'Failed'}
+            ${isSettled ? 'Settled' : 'Error Detected'}
           </span>
         </td>
         <td>
@@ -518,6 +631,34 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
 
       tr.querySelector(".btn-view-receipt").addEventListener("click", () => {
+        if (!isSettled) {
+          receiptBannerHeader.className = "receipt-banner-header error-mode";
+          receiptIconContainer.className = "receipt-check-circle error-circle";
+          receiptIconContainer.innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          `;
+          receiptMainTitle.textContent = "Payment Failed (Error Detected)";
+          receiptAmountTitle.textContent = "Amount (Unprocessed)";
+          receiptAmountVal.className = "amount-number-val font-mono error-val";
+          receiptErrorDiagnostic.classList.remove("hidden");
+          receiptErrorText.textContent = txn.abort_reason || "Error Detected: Unauthorized communication channel interception detected. Payment was blocked to protect funds. Zero balance was deducted.";
+        } else {
+          receiptBannerHeader.className = "receipt-banner-header";
+          receiptIconContainer.className = "receipt-check-circle";
+          receiptIconContainer.innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          `;
+          receiptMainTitle.textContent = "Payment Successful";
+          receiptAmountTitle.textContent = "Settled Amount";
+          receiptAmountVal.className = "amount-number-val font-mono";
+          receiptErrorDiagnostic.classList.add("hidden");
+        }
+
         receiptTimestamp.textContent = txn.timestamp;
         receiptAmountVal.textContent = `₹${txn.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
         receiptPayeeName.textContent = txn.payee_name;
