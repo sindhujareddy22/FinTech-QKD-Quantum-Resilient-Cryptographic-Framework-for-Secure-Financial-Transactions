@@ -1,195 +1,284 @@
 /**
- * QuantumPay — UPI Quantum-Resilient Payment App Frontend Logic
+ * QuantumPe — India's 1st Quantum-Resilient UPI Payment App Controller
  */
 
 document.addEventListener("DOMContentLoaded", () => {
   // Payer State
-  let currentBalance = 125000.0;
-  let currentLevel = 1;
+  let userBalance = 125000.0;
+  let isBalanceVisible = true;
+  let currentEngineLevel = 1;
   let eveEnabled = false;
-  let isProcessing = false;
-  let transactionHistory = [];
+  let enteredPin = "";
+  let passbookHistory = [];
 
   // DOM Elements
-  const userBalance = document.getElementById("user-balance");
-  const contactChips = document.querySelectorAll(".contact-chip");
-  const inputPayeeName = document.getElementById("input-payee-name");
-  const inputPayeeUpi = document.getElementById("input-payee-upi");
-  const inputAmount = document.getElementById("input-amount");
-  const inputNote = document.getElementById("input-note");
-  const btnPayNow = document.getElementById("btn-pay-now");
-  const btnPayText = document.getElementById("btn-pay-text");
+  const displayBalance = document.getElementById("display-balance");
+  const btnToggleBalance = document.getElementById("btn-toggle-balance");
+  const btnRefreshBalance = document.getElementById("btn-refresh-balance");
+  const engineLabel = document.getElementById("engine-label");
+  const btnToggleEngine = document.getElementById("btn-toggle-engine");
+  const eveSwitch = document.getElementById("eve-switch");
+  const eveToggleBox = document.getElementById("eve-toggle-box");
+  const eveStateText = document.getElementById("eve-state-text");
+  const benchEveMarker = document.getElementById("bench-eve-marker");
 
-  // Eve & Engine
-  const toggleEve = document.getElementById("toggle-eve");
-  const eveThreatPanel = document.getElementById("eve-threat-panel");
-  const eveStatusBadge = document.getElementById("eve-status-badge");
-  const engLevel1 = document.getElementById("eng-level-1");
-  const engLevel2 = document.getElementById("eng-level-2");
-  const diagIntegrity = document.getElementById("diag-integrity");
-  const ledgerList = document.getElementById("ledger-list");
-  const ledgerCount = document.getElementById("ledger-count");
-
-  // Modal Elements
-  const paymentModal = document.getElementById("payment-modal");
-  const modalCloseBtn = document.getElementById("modal-close-btn");
-  const modalPayerName = document.getElementById("modal-payer-name");
-  const modalPayerUpi = document.getElementById("modal-payer-upi");
-  const modalPayeeName = document.getElementById("modal-payee-name");
-  const modalPayeeUpi = document.getElementById("modal-payee-upi");
-  const laserLine = document.getElementById("laser-line");
-  const coinStream = document.getElementById("coin-stream");
-  const arenaEve = document.getElementById("arena-eve");
-  const modalSpinner = document.getElementById("modal-spinner");
-  const modalStatusText = document.getElementById("modal-status-text");
-
-  const modalQubits = document.getElementById("modal-qubits");
-  const modalSifted = document.getElementById("modal-sifted");
-  const modalQber = document.getElementById("modal-qber");
-
-  const modalOutcome = document.getElementById("modal-outcome");
-  const outcomeStamp = document.getElementById("outcome-stamp");
-  const outcomeIcon = document.getElementById("outcome-icon");
-  const outcomeTitle = document.getElementById("outcome-title");
-  const outcomeAmount = document.getElementById("outcome-amount");
-  const outcomeDesc = document.getElementById("outcome-desc");
-  const receiptTxnId = document.getElementById("receipt-txn-id");
-  const receiptGmac = document.getElementById("receipt-gmac");
-  const btnModalDone = document.getElementById("btn-modal-done");
-
-  // Update Pay Button Text
-  function updatePayButtonText() {
-    const amt = parseFloat(inputAmount.value) || 0;
-    btnPayText.textContent = `Pay ₹${amt.toLocaleString("en-IN")} with Quantum Protection`;
+  // Phone Clock
+  const phoneTime = document.getElementById("phone-time");
+  function updateTime() {
+    const now = new Date();
+    phoneTime.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
+  updateTime();
+  setInterval(updateTime, 30000);
 
-  inputAmount.addEventListener("input", updatePayButtonText);
+  // Payee & Amount Elements
+  const contactBubbles = document.querySelectorAll(".contact-bubble");
+  const selectedAvatar = document.getElementById("selected-avatar");
+  const selectedName = document.getElementById("selected-name");
+  const selectedUpi = document.getElementById("selected-upi");
+  const payAmountInput = document.getElementById("pay-amount-input");
+  const payNoteInput = document.getElementById("pay-note-input");
+  const btnProceedPay = document.getElementById("btn-proceed-pay");
+  const btnProceedText = document.getElementById("btn-proceed-text");
+  const btnClearForm = document.getElementById("btn-clear-form");
 
-  // Quick Amount Chips
-  document.querySelectorAll(".amt-chip").forEach((chip) => {
-    chip.addEventListener("click", () => {
-      const addVal = parseFloat(chip.dataset.val);
-      const current = parseFloat(inputAmount.value) || 0;
-      inputAmount.value = current + addVal;
+  // Console Telemetry
+  const qLiveQber = document.getElementById("q-live-qber");
+  const passbookList = document.getElementById("passbook-list");
+  const historyCountBadge = document.getElementById("history-count-badge");
+
+  // PIN Modal Elements
+  const pinModal = document.getElementById("pin-modal");
+  const btnClosePin = document.getElementById("btn-close-pin");
+  const pinPayeeName = document.getElementById("pin-payee-name");
+  const pinPayeeAmount = document.getElementById("pin-payee-amount");
+  const pinDots = document.querySelectorAll(".pin-dot");
+  const keyBtns = document.querySelectorAll(".key-btn");
+  const keyClear = document.getElementById("key-clear");
+  const keySubmit = document.getElementById("key-submit");
+
+  // Transfer Modal Elements
+  const transferModal = document.getElementById("transfer-modal");
+  const tPayeeAvatar = document.getElementById("t-payee-avatar");
+  const tPayeeName = document.getElementById("t-payee-name");
+  const tPayeeUpi = document.getElementById("t-payee-upi");
+  const laserBeamCore = document.getElementById("laser-beam-core");
+  const coinsContainer = document.getElementById("coins-container");
+  const eveLaserTrap = document.getElementById("eve-laser-trap");
+  const spinnerDot = document.getElementById("spinner-dot");
+  const stepStatusMsg = document.getElementById("step-status-msg");
+
+  const mRawBits = document.getElementById("m-raw-bits");
+  const mSiftedBits = document.getElementById("m-sifted-bits");
+  const mQberVal = document.getElementById("m-qber-val");
+  const mQberPill = document.getElementById("m-qber-pill");
+
+  const finalResultCard = document.getElementById("final-result-card");
+  const resultBadgeStamp = document.getElementById("result-badge-stamp");
+  const stampIcon = document.getElementById("stamp-icon");
+  const stampTitle = document.getElementById("stamp-title");
+  const stampAmount = document.getElementById("stamp-amount");
+  const stampDesc = document.getElementById("stamp-desc");
+  const rTxnId = document.getElementById("r-txn-id");
+  const rSecurityVerdict = document.getElementById("r-security-verdict");
+  const rGmacTag = document.getElementById("r-gmac-tag");
+  const btnDoneModal = document.getElementById("btn-done-modal");
+
+  // Balance Visibility Toggle
+  btnToggleBalance.addEventListener("click", () => {
+    isBalanceVisible = !isBalanceVisible;
+    if (isBalanceVisible) {
+      displayBalance.textContent = `₹${userBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+      btnToggleBalance.textContent = "👁️";
+    } else {
+      displayBalance.textContent = "₹••••••••";
+      btnToggleBalance.textContent = "🙈";
+    }
+  });
+
+  btnRefreshBalance.addEventListener("click", () => {
+    displayBalance.textContent = `₹${userBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+  });
+
+  // Engine Switcher
+  btnToggleEngine.addEventListener("click", () => {
+    currentEngineLevel = currentEngineLevel === 1 ? 2 : 1;
+    if (currentEngineLevel === 1) {
+      engineLabel.textContent = "Level 1: Classical BB84";
+    } else {
+      engineLabel.textContent = "Level 2: Qiskit Circuits";
+    }
+  });
+
+  // Eve Toggle Switch
+  eveSwitch.addEventListener("change", (e) => {
+    eveEnabled = e.target.checked;
+    if (eveEnabled) {
+      eveToggleBox.classList.add("active");
+      eveStateText.textContent = "ACTIVE (100% Attack)";
+      benchEveMarker.classList.add("active");
+      qLiveQber.textContent = "~25.00%";
+      qLiveQber.className = "mq-val font-mono text-amber";
+    } else {
+      eveToggleBox.classList.remove("active");
+      eveStateText.textContent = "OFF (Honest)";
+      benchEveMarker.classList.remove("active");
+      qLiveQber.textContent = "0.00%";
+      qLiveQber.className = "mq-val font-mono text-green";
+    }
+  });
+
+  // Payee Selection
+  contactBubbles.forEach((bubble) => {
+    bubble.addEventListener("click", () => {
+      contactBubbles.forEach((b) => b.classList.remove("active"));
+      bubble.classList.add("active");
+      selectedAvatar.textContent = bubble.dataset.avatar;
+      selectedName.textContent = bubble.dataset.name;
+      selectedUpi.textContent = bubble.dataset.upi;
       updatePayButtonText();
     });
   });
 
-  // Contact Chips Selection
-  contactChips.forEach((chip) => {
+  // Quick Amount Chips
+  document.querySelectorAll(".chip-btn").forEach((chip) => {
     chip.addEventListener("click", () => {
-      contactChips.forEach((c) => c.classList.remove("active"));
-      chip.classList.add("active");
-      inputPayeeName.value = chip.dataset.name;
-      inputPayeeUpi.value = chip.dataset.upi;
+      const addVal = parseFloat(chip.dataset.add);
+      const cur = parseFloat(payAmountInput.value) || 0;
+      payAmountInput.value = cur + addVal;
+      updatePayButtonText();
     });
   });
 
-  // Eve Toggle
-  toggleEve.addEventListener("change", (e) => {
-    eveEnabled = e.target.checked;
-    if (eveEnabled) {
-      eveThreatPanel.classList.add("attack-active");
-      eveStatusBadge.className = "eve-status-badge badge-attack";
-      eveStatusBadge.innerHTML = `<span>⚠️ Quantum Intercept Attack Active (Eve 100%)</span>`;
-      diagIntegrity.textContent = "Under Attack";
-      diagIntegrity.className = "dm-val text-red";
-    } else {
-      eveThreatPanel.classList.remove("attack-active");
-      eveStatusBadge.className = "eve-status-badge badge-clean";
-      eveStatusBadge.innerHTML = `<span>🛡️ Honest Channel (Eve Inactive • QBER 0.00%)</span>`;
-      diagIntegrity.textContent = "100% Secure";
-      diagIntegrity.className = "dm-val text-green";
-    }
-  });
-
-  // Engine Selector
-  engLevel1.addEventListener("click", () => {
-    currentLevel = 1;
-    engLevel1.classList.add("active");
-    engLevel2.classList.remove("active");
-  });
-
-  engLevel2.addEventListener("click", () => {
-    currentLevel = 2;
-    engLevel2.classList.add("active");
-    engLevel1.classList.remove("active");
-  });
-
-  // Spawn Flying Gold Coins
-  function spawnCoins() {
-    coinStream.innerHTML = "";
-    for (let i = 0; i < 6; i++) {
-      const coin = document.createElement("div");
-      coin.className = "flying-coin";
-      coin.textContent = "₹";
-      coin.style.animationDelay = `${i * 0.2}s`;
-      coinStream.appendChild(coin);
-    }
+  function updatePayButtonText() {
+    const amt = parseFloat(payAmountInput.value) || 0;
+    btnProceedText.textContent = `Pay ₹${amt.toLocaleString("en-IN")} with Quantum Protection`;
   }
+  payAmountInput.addEventListener("input", updatePayButtonText);
 
-  // Freeze Coins on Attack
-  function freezeCoinsWithAlarm() {
-    document.querySelectorAll(".flying-coin").forEach((c) => {
-      c.classList.add("freeze-alarm");
-    });
-    laserLine.classList.add("alarm");
-    arenaEve.classList.add("active");
-  }
+  btnClearForm.addEventListener("click", () => {
+    payAmountInput.value = 1000;
+    payNoteInput.value = "";
+    updatePayButtonText();
+  });
 
-  // Handle Payment Execution
-  btnPayNow.addEventListener("click", async () => {
-    if (isProcessing) return;
-    const amountVal = parseFloat(inputAmount.value);
-    if (!amountVal || amountVal <= 0) {
+  // Step 1: Open PIN Modal
+  btnProceedPay.addEventListener("click", () => {
+    const amt = parseFloat(payAmountInput.value);
+    if (!amt || amt <= 0) {
       alert("Please enter a valid transfer amount.");
       return;
     }
-
-    if (amountVal > currentBalance) {
-      alert("Insufficient wallet balance for this payment.");
+    if (amt > userBalance) {
+      alert("Insufficient wallet balance.");
       return;
     }
 
-    isProcessing = true;
-    modalOutcome.style.display = "none";
-    laserLine.classList.remove("alarm");
-    arenaEve.classList.remove("active");
-    modalSpinner.style.display = "block";
+    pinPayeeName.textContent = selectedName.textContent;
+    pinPayeeAmount.textContent = `₹${amt.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+    enteredPin = "";
+    updatePinDots();
+    pinModal.classList.add("active");
+  });
 
-    // Setup Modal Info
-    modalPayeeName.textContent = inputPayeeName.value;
-    modalPayeeUpi.textContent = inputPayeeUpi.value;
-    modalStatusText.textContent = "Initiating BB84 Quantum Key Agreement...";
-    modalQber.textContent = "Scanning...";
-    modalSifted.textContent = "--";
+  btnClosePin.addEventListener("click", () => {
+    pinModal.classList.remove("active");
+  });
 
-    // Open Modal & Spawn Coins
-    paymentModal.classList.add("active");
-    spawnCoins();
+  // PIN Keypad Handling
+  keyBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const key = btn.dataset.key;
+      if (key && enteredPin.length < 4) {
+        enteredPin += key;
+        updatePinDots();
+        if (enteredPin.length === 4) {
+          setTimeout(startQuantumTransfer, 200);
+        }
+      }
+    });
+  });
+
+  keyClear.addEventListener("click", () => {
+    enteredPin = "";
+    updatePinDots();
+  });
+
+  keySubmit.addEventListener("click", () => {
+    if (enteredPin.length === 4) {
+      startQuantumTransfer();
+    } else {
+      alert("Please enter a 4-digit PIN.");
+    }
+  });
+
+  function updatePinDots() {
+    pinDots.forEach((dot, idx) => {
+      if (idx < enteredPin.length) dot.classList.add("filled");
+      else dot.classList.remove("filled");
+    });
+  }
+
+  // Step 2: Flying Coins Stream & Quantum Laser Transfer
+  function spawnFlyingCoins() {
+    coinsContainer.innerHTML = "";
+    for (let i = 0; i < 7; i++) {
+      const coin = document.createElement("div");
+      coin.className = "golden-coin";
+      coin.textContent = "₹";
+      coin.style.animationDelay = `${i * 0.18}s`;
+      coinsContainer.appendChild(coin);
+    }
+  }
+
+  function freezeCoinsAlarm() {
+    document.querySelectorAll(".golden-coin").forEach((c) => {
+      c.classList.add("frozen");
+    });
+    laserBeamCore.classList.add("alarm");
+    eveLaserTrap.classList.add("active");
+  }
+
+  async function startQuantumTransfer() {
+    pinModal.classList.remove("active");
+    const amountToPay = parseFloat(payAmountInput.value);
+
+    // Setup Transfer Modal
+    tPayeeAvatar.textContent = selectedAvatar.textContent;
+    tPayeeName.textContent = selectedName.textContent;
+    tPayeeUpi.textContent = selectedUpi.textContent;
+
+    finalResultCard.style.display = "none";
+    laserBeamCore.classList.remove("alarm");
+    eveLaserTrap.classList.remove("active");
+    spinnerDot.style.display = "block";
+    stepStatusMsg.textContent = "Polarizing single photons & establishing BB84 link...";
+    mQberVal.textContent = "Scanning...";
+    mSiftedBits.textContent = "--";
+
+    transferModal.classList.add("active");
+    spawnFlyingCoins();
 
     if (eveEnabled) {
-      arenaEve.classList.add("active");
+      eveLaserTrap.classList.add("active");
     }
 
     try {
-      // Step 1: Laser Handshake Delay
       await new Promise((r) => setTimeout(r, 600));
-      modalStatusText.textContent = "Polarizing Single Photons & Checking QBER...";
+      stepStatusMsg.textContent = "Measuring public sample to calculate QBER error rate...";
 
-      // Step 2: Call Backend API
       const response = await fetch("/api/send-upi-payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           payer_name: "Spandana Rao",
           payer_upi: "spandana@okquantum",
-          payee_name: inputPayeeName.value,
-          payee_upi: inputPayeeUpi.value,
-          amount: amountVal,
+          payee_name: selectedName.textContent,
+          payee_upi: selectedUpi.textContent,
+          amount: amountToPay,
           currency: "₹",
-          note: inputNote.value,
-          level: currentLevel,
+          note: payNoteInput.value,
+          level: currentEngineLevel,
           num_bits: 512,
           eve_enabled: eveEnabled,
           eve_rate: eveEnabled ? 1.0 : 0.0,
@@ -199,101 +288,98 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await response.json();
       await new Promise((r) => setTimeout(r, 700));
 
-      handlePaymentResponse(data, amountVal);
+      handleTransferResult(data, amountToPay);
     } catch (err) {
       console.error("Payment API Error:", err);
-      modalStatusText.textContent = "Connection Failure: Payment Server Offline";
-    } finally {
-      isProcessing = false;
+      stepStatusMsg.textContent = "Connection Failure: QKD Node Offline";
     }
-  });
-
-  function handlePaymentResponse(data, amountVal) {
-    const qkd = data.qkd;
-    const isSuccess = data.settlement.status === "SUCCESS";
-    const qberPct = (qkd.qber * 100).toFixed(2) + "%";
-
-    modalQubits.textContent = qkd.raw_bit_count;
-    modalSifted.textContent = `${qkd.sifted_count} bits`;
-    modalQber.textContent = qberPct;
-
-    modalSpinner.style.display = "none";
-
-    if (isSuccess) {
-      // Clean Run Success
-      currentBalance -= amountVal;
-      userBalance.textContent = `₹${currentBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
-
-      modalStatusText.textContent = "✔ Key Accepted • AES-256-GCM Encrypted & Settled";
-      outcomeStamp.className = "outcome-stamp stamp-success";
-      outcomeIcon.textContent = "✔";
-      outcomeTitle.textContent = "PAYMENT SUCCESSFUL";
-      outcomeAmount.textContent = `₹${amountVal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
-      outcomeDesc.textContent = `Transferred to ${data.transaction.payee_name} (${data.transaction.payee_upi})`;
-
-      receiptTxnId.textContent = data.transaction.txn_id;
-      receiptGmac.textContent = data.settlement.encrypted_payload.tag;
-
-      addLedgerEntry({
-        txn_id: data.transaction.txn_id,
-        payee: data.transaction.payee_name,
-        amount: amountVal,
-        status: "SETTLED",
-        qber: qberPct,
-      });
-    } else {
-      // Eavesdropping Detected & Blocked
-      freezeCoinsWithAlarm();
-
-      modalStatusText.textContent = "🚨 SECURITY ALERT: QUANTUM INTERCEPTION DETECTED!";
-      outcomeStamp.className = "outcome-stamp stamp-failure";
-      outcomeIcon.textContent = "🚨";
-      outcomeTitle.textContent = "PAYMENT BLOCKED — EVE DETECTED";
-      outcomeAmount.textContent = `₹${amountVal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
-      outcomeDesc.textContent = `QBER (${qberPct}) exceeded 11.00% safety threshold. Zero funds deducted to prevent Harvest-Now-Decrypt-Later attack.`;
-
-      receiptTxnId.textContent = data.transaction.txn_id;
-      receiptGmac.textContent = "[SUPPRESSED - ZERO DATA EXPOSED]";
-
-      addLedgerEntry({
-        txn_id: data.transaction.txn_id,
-        payee: data.transaction.payee_name,
-        amount: amountVal,
-        status: "BLOCKED",
-        qber: qberPct,
-      });
-    }
-
-    modalOutcome.style.display = "flex";
   }
 
-  function addLedgerEntry(entry) {
-    transactionHistory.unshift(entry);
-    ledgerCount.textContent = `${transactionHistory.length} recorded`;
+  function handleTransferResult(data, amountToPay) {
+    const qkd = data.qkd;
+    const isSuccess = data.settlement.status === "SUCCESS";
+    const qberStr = (qkd.qber * 100).toFixed(2) + "%";
 
-    ledgerList.innerHTML = "";
-    transactionHistory.forEach((t) => {
+    mRawBits.textContent = qkd.raw_bit_count;
+    mSiftedBits.textContent = `${qkd.sifted_count} bits`;
+    mQberVal.textContent = qberStr;
+
+    spinnerDot.style.display = "none";
+
+    if (isSuccess) {
+      userBalance -= amountToPay;
+      if (isBalanceVisible) {
+        displayBalance.textContent = `₹${userBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+      }
+
+      stepStatusMsg.textContent = "✔ Key Accepted • AES-256-GCM Encrypted & Settled";
+      resultBadgeStamp.className = "result-badge-stamp stamp-success";
+      stampIcon.textContent = "✔";
+      stampTitle.textContent = "PAYMENT SUCCESSFUL";
+      stampAmount.textContent = `₹${amountToPay.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+      stampDesc.textContent = `Paid to ${data.transaction.payee_name} (${data.transaction.payee_upi})`;
+
+      rTxnId.textContent = data.transaction.txn_id;
+      rSecurityVerdict.textContent = "BB84 QKD 100% Secure (QBER 0.00%)";
+      rSecurityVerdict.className = "text-green";
+      rGmacTag.textContent = data.settlement.encrypted_payload.tag;
+
+      addPassbookEntry({
+        txn_id: data.transaction.txn_id,
+        payee: data.transaction.payee_name,
+        amount: amountToPay,
+        status: "SUCCESS",
+        qber: qberStr,
+      });
+    } else {
+      freezeCoinsAlarm();
+
+      stepStatusMsg.textContent = "🚨 SECURITY ALERT: QUANTUM INTERCEPTION DETECTED!";
+      resultBadgeStamp.className = "result-badge-stamp stamp-blocked";
+      stampIcon.textContent = "🚨";
+      stampTitle.textContent = "PAYMENT BLOCKED — EVE DETECTED";
+      stampAmount.textContent = `₹${amountToPay.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+      stampDesc.textContent = `QBER (${qberStr}) exceeded 11.00% safety threshold. Zero funds deducted to prevent Harvest-Now-Decrypt-Later attack.`;
+
+      rTxnId.textContent = data.transaction.txn_id;
+      rSecurityVerdict.textContent = `Eavesdropping Alert (QBER ${qberStr} > 11.00%)`;
+      rSecurityVerdict.className = "text-red";
+      rGmacTag.textContent = "[SUPPRESSED - ZERO DATA EXPOSED]";
+
+      addPassbookEntry({
+        txn_id: data.transaction.txn_id,
+        payee: data.transaction.payee_name,
+        amount: amountToPay,
+        status: "BLOCKED (EVE)",
+        qber: qberStr,
+      });
+    }
+
+    finalResultCard.style.display = "flex";
+  }
+
+  function addPassbookEntry(item) {
+    passbookHistory.unshift(item);
+    historyCountBadge.textContent = `${passbookHistory.length} transfers`;
+
+    passbookList.innerHTML = "";
+    passbookHistory.forEach((t) => {
       const row = document.createElement("div");
-      row.className = "ledger-item";
-      const isSettled = t.status === "SETTLED";
-      const chipClass = isSettled ? "badge-settled-chip" : "badge-blocked-chip";
+      row.className = "passbook-item";
+      const isSuccess = t.status === "SUCCESS";
+      const tagClass = isSuccess ? "badge-success-tag" : "badge-blocked-tag";
       row.innerHTML = `
         <div>
-          <div class="ledger-item-title">${t.payee} (₹${t.amount.toLocaleString("en-IN")})</div>
-          <div class="ledger-item-sub font-mono">${t.txn_id} • QBER: ${t.qber}</div>
+          <div style="font-weight:700; font-size:0.8rem; color:#fff;">${t.payee} • ₹${t.amount.toLocaleString("en-IN")}</div>
+          <div style="font-size:0.65rem; color:#94a3b8; font-family:var(--font-mono);">${t.txn_id} • QBER: ${t.qber}</div>
         </div>
-        <span class="${chipClass}">${t.status}</span>
+        <span class="${tagClass}">${t.status}</span>
       `;
-      ledgerList.appendChild(row);
+      passbookList.appendChild(row);
     });
   }
 
-  // Modal Close Actions
-  modalCloseBtn.addEventListener("click", () => {
-    paymentModal.classList.remove("active");
-  });
-
-  btnModalDone.addEventListener("click", () => {
-    paymentModal.classList.remove("active");
+  btnDoneModal.addEventListener("click", () => {
+    transferModal.classList.remove("active");
   });
 });
