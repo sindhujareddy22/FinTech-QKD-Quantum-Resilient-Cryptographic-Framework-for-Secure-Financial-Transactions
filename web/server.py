@@ -1,11 +1,13 @@
 """
-Web Server and REST API for FinTech QKD Interactive Localhost Dashboard.
+Web Server and REST API for FinTech QKD UPI Interactive Payment Dashboard.
 """
 
+from datetime import datetime, timezone
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 import json
 import os
 import sys
+import uuid
 from typing import Any, Dict
 from urllib.parse import urlparse
 
@@ -28,7 +30,7 @@ WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 
 class QKDServerHandler(SimpleHTTPRequestHandler):
     """
-    HTTP Request Handler serving static web assets and QKD simulation API endpoints.
+    HTTP Request Handler serving static web assets and UPI QKD payment endpoints.
     """
 
     def __init__(self, *args, **kwargs):
@@ -66,6 +68,8 @@ class QKDServerHandler(SimpleHTTPRequestHandler):
             self.handle_simulate(body)
         elif url.path == "/api/new-transaction":
             self.handle_new_transaction(body)
+        elif url.path == "/api/send-upi-payment":
+            self.handle_send_upi_payment(body)
         else:
             self._send_json({"error": "Endpoint not found"}, status=404)
 
@@ -73,13 +77,102 @@ class QKDServerHandler(SimpleHTTPRequestHandler):
         txn = generate_transaction()
         self._send_json({"success": True, "transaction": txn.to_dict()})
 
+    def handle_send_upi_payment(self, body: dict):
+        # Extract user input details
+        payer_name = body.get("payer_name", "Spandana Rao")
+        payer_upi = body.get("payer_upi", "spandana@okaxis")
+        payee_name = body.get("payee_name", "Bob Sharma")
+        payee_upi = body.get("payee_upi", "bob@okhdfcbank")
+        amount = float(body.get("amount", 2500.0))
+        currency = body.get("currency", "₹")
+        note = body.get("note", "Interbank Transfer")
+        
+        level = int(body.get("level", 1))
+        num_bits = int(body.get("num_bits", 512))
+        eve_enabled = bool(body.get("eve_enabled", False))
+        eve_rate = float(body.get("eve_rate", 1.0)) if eve_enabled else 0.0
+
+        # Construct UPI Transaction Object
+        txn_id = f"UPI-{uuid.uuid4().hex[:12].upper()}"
+        timestamp = datetime.now(timezone.utc).isoformat()
+        
+        raw_payload_dict = {
+            "txn_id": txn_id,
+            "payer_name": payer_name,
+            "payer_upi": payer_upi,
+            "payee_name": payee_name,
+            "payee_upi": payee_upi,
+            "amount": amount,
+            "currency": currency,
+            "note": note,
+            "timestamp": timestamp,
+            "protocol": "UPI-QKD-2.0",
+        }
+        raw_payload_json = json.dumps(raw_payload_dict, indent=2)
+
+        # Authenticate classical channel
+        auth_chan = AuthenticatedChannel()
+        auth_msg = auth_chan.send(payer_upi, payee_upi, "UPI_KEY_INIT", {"txn_id": txn_id, "bits": num_bits})
+        auth_verified = auth_chan.verify_and_receive(auth_msg)
+
+        eve = Eavesdropper(interception_rate=eve_rate) if eve_enabled else None
+
+        if level == 1:
+            sim = ClassicalBB84(num_bits=num_bits)
+            qkd_res = sim.run(eavesdropper_fn=eve.intercept_and_resend_classical if eve else None)
+        else:
+            sim = QiskitBB84(num_bits=num_bits)
+            qkd_res = sim.run(eavesdropper=eve)
+
+        settlement_info = {}
+        if not qkd_res.is_aborted and qkd_res.final_aes_key:
+            cipher = AESGCMCipher(qkd_res.final_aes_key)
+            encrypted = cipher.encrypt(raw_payload_json, associated_data=txn_id)
+            decrypted_str = cipher.decrypt(encrypted)
+            settlement_info = {
+                "status": "SUCCESS",
+                "message": "Payment transferred successfully via quantum-secured AES-256-GCM.",
+                "encrypted_payload": encrypted.to_dict(),
+                "decrypted_valid": True,
+            }
+        else:
+            settlement_info = {
+                "status": "BLOCKED",
+                "message": f"TRANSACTION BLOCKED! Quantum Eavesdropping Detected (QBER: {qkd_res.qber:.2%}). Zero funds or data transmitted.",
+                "encrypted_payload": None,
+                "decrypted_valid": False,
+            }
+
+        response = {
+            "success": True,
+            "transaction": raw_payload_dict,
+            "settlement": settlement_info,
+            "qkd": {
+                "simulation_level": qkd_res.simulation_level,
+                "raw_bit_count": qkd_res.raw_bit_count,
+                "sifted_count": len(qkd_res.alice_sifted_key),
+                "sample_count": len(qkd_res.sample_indices),
+                "sample_errors": qkd_res.sample_errors,
+                "qber": qkd_res.qber,
+                "abort_threshold": qkd_res.abort_threshold,
+                "is_aborted": qkd_res.is_aborted,
+                "abort_reason": qkd_res.abort_reason,
+                "aes_key_hex": qkd_res.final_aes_key.hex() if qkd_res.final_aes_key else None,
+                "hmac_auth_tag": auth_msg.hmac_tag,
+            },
+            "eve": {
+                "enabled": eve_enabled,
+                "rate": eve_rate,
+            }
+        }
+        self._send_json(response)
+
     def handle_simulate(self, body: dict):
         level = int(body.get("level", 1))
         num_bits = int(body.get("num_bits", 256))
         eve_enabled = bool(body.get("eve_enabled", False))
         eve_rate = float(body.get("eve_rate", 1.0)) if eve_enabled else 0.0
 
-        # Authenticate classical channel
         auth_chan = AuthenticatedChannel()
         auth_msg = auth_chan.send("Alice", "Bob", "BB84_INIT", {"bits": num_bits, "level": level})
         auth_verified = auth_chan.verify_and_receive(auth_msg)
@@ -93,7 +186,6 @@ class QKDServerHandler(SimpleHTTPRequestHandler):
             sim = QiskitBB84(num_bits=num_bits)
             qkd_res = sim.run(eavesdropper=eve)
 
-        # Prepare visual sample slices for frontend animations (first 64 qubits)
         vis_count = min(64, num_bits)
         visual_photons = []
         for i in range(vis_count):
@@ -115,7 +207,6 @@ class QKDServerHandler(SimpleHTTPRequestHandler):
                 "is_sample": is_sample,
             })
 
-        # Generate financial transaction
         txn = generate_transaction()
         settlement_info = None
 
@@ -161,9 +252,6 @@ class QKDServerHandler(SimpleHTTPRequestHandler):
 
 
 def run_server(port: int = 8080, host: str = "127.0.0.1"):
-    """
-    Launch HTTP server on localhost.
-    """
     os.makedirs(WEB_DIR, exist_ok=True)
     server_address = (host, port)
     httpd = HTTPServer(server_address, QKDServerHandler)
