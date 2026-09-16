@@ -20,6 +20,16 @@ document.addEventListener("DOMContentLoaded", () => {
     bank: "HDFC Bank",
   };
 
+  // Multi-Bank Balances & PIN Authentication Mode State
+  let currentPinMode = "PAYMENT"; // "PAYMENT" | "CHECK_BALANCE"
+  let pendingBankCheck = null;
+  const bankBalances = {
+    hdfc: { name: "HDFC Bank Limited", balance: 125000.0, revealed: false },
+    sbi: { name: "State Bank of India", balance: 48500.0, revealed: false },
+    icici: { name: "ICICI Bank Limited", balance: 75230.0, revealed: false },
+    axis: { name: "Axis Bank Limited", balance: 110400.0, revealed: false },
+  };
+
   // Web Audio Synthesizer for Clean Interaction Sound Effects
   const audioCtx = (typeof window.AudioContext !== "undefined" || typeof window.webkitAudioContext !== "undefined")
     ? new (window.AudioContext || window.webkitAudioContext)()
@@ -137,7 +147,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const eveToggleSwitch = document.getElementById("eve-toggle-switch");
   const eveToggleState = document.getElementById("eve-toggle-state");
 
-  // Balance & KPI Elements
+  // Balance & Multi-Bank Elements
+  const btnOpenMultiBank = document.getElementById("btn-open-multi-bank");
+  const cbSubStatus = document.getElementById("cb-sub-status");
+  const modalMultiBankBalance = document.getElementById("modal-multi-bank-balance");
+  const btnCloseBankBalanceModal = document.getElementById("btn-close-bank-balance-modal");
   const mainBalanceDigits = document.getElementById("main-balance-digits");
   const balanceEyeBtn = document.getElementById("balance-eye-btn");
   const balanceRefreshBtn = document.getElementById("balance-refresh-btn");
@@ -245,22 +259,127 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Balance Visibility Toggle
-  balanceEyeBtn.addEventListener("click", () => {
-    isBalanceVisible = !isBalanceVisible;
-    if (isBalanceVisible) {
-      mainBalanceDigits.textContent = `₹${userBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
-    } else {
-      mainBalanceDigits.textContent = "₹••••••••";
-    }
-    playSound("tap");
+  // Multi-Bank Balance Hub Click Listener
+  if (btnOpenMultiBank) {
+    btnOpenMultiBank.addEventListener("click", () => {
+      modalMultiBankBalance.classList.remove("hidden");
+      playSound("tap");
+    });
+  }
+
+  if (btnCloseBankBalanceModal) {
+    btnCloseBankBalanceModal.addEventListener("click", () => {
+      modalMultiBankBalance.classList.add("hidden");
+      playSound("tap");
+    });
+  }
+
+  if (modalMultiBankBalance) {
+    modalMultiBankBalance.addEventListener("click", (e) => {
+      if (e.target === modalMultiBankBalance) {
+        modalMultiBankBalance.classList.add("hidden");
+      }
+    });
+  }
+
+  // Check Balance for Each Linked Bank
+  document.querySelectorAll(".btn-check-single-bal").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const bankId = btn.getAttribute("data-bank");
+      const bankName = btn.getAttribute("data-bank-name") || "Bank";
+      const acc = btn.getAttribute("data-acc") || "••••";
+      const initials = btn.getAttribute("data-initials") || "UPI";
+
+      if (bankBalances[bankId] && bankBalances[bankId].revealed) {
+        // Toggle re-hide
+        bankBalances[bankId].revealed = false;
+        const balVal = document.getElementById(`bal-val-${bankId}`);
+        if (balVal) {
+          balVal.textContent = "₹••••••••";
+          balVal.className = "bank-bal-val font-mono masked";
+        }
+        btn.classList.remove("checked");
+        btn.innerHTML = `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          <span>Check Balance</span>
+        `;
+        playSound("tap");
+      } else {
+        // Prompt 4-Digit UPI PIN for authentic quantum-verified check
+        currentPinMode = "CHECK_BALANCE";
+        pendingBankCheck = { bankId, bankName, acc, initials };
+
+        modalPayeeAvatar.textContent = initials;
+        modalPayeeName.textContent = bankName;
+        modalPayeeUpi.textContent = `A/C •••••••• ${acc}`;
+        modalPayeeAmount.textContent = "VERIFY PIN";
+        keyActionPay.textContent = "CHECK";
+
+        enteredPin = "";
+        updatePinBubbles();
+        modalPinOverlay.classList.remove("hidden");
+        playSound("tap");
+      }
+    });
   });
 
-  balanceRefreshBtn.addEventListener("click", () => {
-    fetchAccountStatus();
-    showToast("Account balance refreshed with HDFC Bank.", "info");
-    playSound("tap");
-  });
+  function verifyAndRevealBankBalance(bankInfo) {
+    const bankId = bankInfo.bankId;
+    const bal = (bankId === "hdfc") ? userBalance : (bankBalances[bankId]?.balance || 50000.0);
+    if (bankBalances[bankId]) {
+      bankBalances[bankId].revealed = true;
+    }
+
+    const balValEl = document.getElementById(`bal-val-${bankId}`);
+    const btnEl = document.getElementById(`btn-check-bal-${bankId}`);
+
+    if (balValEl) {
+      balValEl.textContent = `₹${bal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+      balValEl.className = "bank-bal-val font-mono revealed";
+    }
+
+    if (btnEl) {
+      btnEl.classList.add("checked");
+      btnEl.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+        <span>Hide</span>
+      `;
+    }
+
+    if (cbSubStatus) {
+      cbSubStatus.textContent = `${bankInfo.bankName}: ₹${bal.toLocaleString("en-IN", { minimumFractionDigits: 2 })} (Verified)`;
+    }
+
+    playSound("success");
+    showToast(`Balance verified for ${bankInfo.bankName}: ₹${bal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`, "success");
+  }
+
+  // Backward compatibility for balance toggle if elements exist
+  if (balanceEyeBtn && mainBalanceDigits) {
+    balanceEyeBtn.addEventListener("click", () => {
+      isBalanceVisible = !isBalanceVisible;
+      if (isBalanceVisible) {
+        mainBalanceDigits.textContent = `₹${userBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+      } else {
+        mainBalanceDigits.textContent = "₹••••••••";
+      }
+      playSound("tap");
+    });
+  }
+
+  if (balanceRefreshBtn) {
+    balanceRefreshBtn.addEventListener("click", () => {
+      fetchAccountStatus();
+      showToast("Account balance refreshed with HDFC Bank.", "info");
+      playSound("tap");
+    });
+  }
 
   // Amount Input Listener
   inputTransferAmount.addEventListener("input", () => {
@@ -334,11 +453,23 @@ document.addEventListener("DOMContentLoaded", () => {
       const res = await fetch("/api/security/status");
       const data = await res.json();
       userBalance = data.user_balance;
+      bankBalances.hdfc.balance = userBalance;
       updateEveState(data.eve_enabled);
 
-      if (isBalanceVisible) {
+      if (mainBalanceDigits && isBalanceVisible) {
         mainBalanceDigits.textContent = `₹${userBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
       }
+
+      if (bankBalances.hdfc.revealed) {
+        const balValHdfc = document.getElementById("bal-val-hdfc");
+        if (balValHdfc) {
+          balValHdfc.textContent = `₹${userBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+        }
+        if (cbSubStatus) {
+          cbSubStatus.textContent = `HDFC Bank: ₹${userBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })} (Verified)`;
+        }
+      }
+
       kpiTotalPaid.textContent = `₹${data.total_settled_amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
       kpiTxnCount.textContent = data.total_settled_count + data.total_blocked_count;
     } catch (e) {
@@ -368,10 +499,12 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    currentPinMode = "PAYMENT";
     modalPayeeAvatar.textContent = currentPayee.initials || "UPI";
     modalPayeeName.textContent = name;
     modalPayeeUpi.textContent = upi;
     modalPayeeAmount.textContent = `₹${amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+    keyActionPay.textContent = "AUTHORIZE";
     enteredPin = "";
     updatePinBubbles();
     modalPinOverlay.classList.remove("hidden");
@@ -413,7 +546,11 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     modalPinOverlay.classList.add("hidden");
-    processUPIPayment();
+    if (currentPinMode === "CHECK_BALANCE" && pendingBankCheck) {
+      verifyAndRevealBankBalance(pendingBankCheck);
+    } else {
+      processUPIPayment();
+    }
   });
 
   // Process UPI Payment

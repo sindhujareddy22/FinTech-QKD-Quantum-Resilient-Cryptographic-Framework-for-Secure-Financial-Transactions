@@ -117,23 +117,25 @@
           </div>
 
           <div class="card-bottom-row">
-            <div class="balance-container">
-              <span class="balance-caption">Primary Settlement Balance</span>
-              <div class="balance-display-row">
-                <span class="balance-digits font-mono" id="main-balance-digits">₹1,25,000.00</span>
-                <button class="icon-toggle-btn" id="balance-eye-btn" title="Toggle Balance Visibility">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                    <circle cx="12" cy="12" r="3"></circle>
-                  </svg>
-                </button>
-                <button class="icon-toggle-btn" id="balance-refresh-btn" title="Refresh Balance">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="23 4 23 10 17 10"></polyline>
-                    <polyline points="1 20 1 14 7 14"></polyline>
-                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                  </svg>
-                </button>
+            <!-- Clickable Box: Check Balance to Different Banks -->
+            <div class="check-balance-box-clickable" id="btn-open-multi-bank" role="button" tabindex="0" title="Click to check balance across linked bank accounts">
+              <div class="cb-icon-pill">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 21h18M3 10h18M5 10v11M19 10v11M9 10v11M15 10v11M12 2L2 7h20L12 2z"></path>
+                </svg>
+              </div>
+              <div class="cb-content">
+                <div class="cb-header-line">
+                  <span class="cb-main-label">Check Bank Balance</span>
+                  <span class="cb-badge-chip">4 Linked Banks</span>
+                </div>
+                <div class="cb-sub-label" id="cb-sub-status">Check balance across different banks</div>
+              </div>
+              <div class="cb-chevron">
+                <span>Check</span>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
               </div>
             </div>
 
@@ -582,6 +584,136 @@
         <span>24x7 NPCI Verified</span>
       </div>
     </footer>
+  </div>
+
+  <!-- INTERACTIVE MULTI-BANK BALANCE MODAL -->
+  <div class="modal-overlay hidden" id="modal-multi-bank-balance">
+    <div class="bank-balance-modal-card">
+      <div class="bank-balance-modal-header">
+        <div class="bb-modal-title-group">
+          <div class="bb-modal-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 21h18M3 10h18M5 10v11M19 10v11M9 10v11M15 10v11M12 2L2 7h20L12 2z"></path>
+            </svg>
+          </div>
+          <div>
+            <h3 class="bb-modal-heading">Check Bank Balance</h3>
+            <p class="bb-modal-sub">Linked Bank Accounts • Quantum-Resilient Security</p>
+          </div>
+        </div>
+        <button class="pin-close-btn" id="btn-close-bank-balance-modal" title="Close">✕</button>
+      </div>
+
+      <div class="bank-accounts-list" id="bank-accounts-list">
+        <!-- HDFC Bank Limited (Primary) -->
+        <div class="bank-item-card" data-bank-id="hdfc">
+          <div class="bank-item-top">
+            <div class="bank-badge-avatar hdfc">HDFC</div>
+            <div class="bank-info-col">
+              <div class="bank-acc-name">
+                HDFC Bank Limited
+                <span class="primary-acc-pill">Primary</span>
+              </div>
+              <div class="bank-acc-meta font-mono">Savings A/C •••••••• 4920 | IFSC: HDFC0004920</div>
+            </div>
+          </div>
+          <div class="bank-item-balance-row">
+            <div class="bank-bal-display">
+              <span class="bank-bal-lbl">Available Balance:</span>
+              <span class="bank-bal-val font-mono masked" id="bal-val-hdfc">₹••••••••</span>
+            </div>
+            <button type="button" class="btn-check-single-bal" id="btn-check-bal-hdfc" data-bank="hdfc" data-bank-name="HDFC Bank Limited" data-acc="4920" data-initials="HDFC">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              <span>Check Balance</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- State Bank of India -->
+        <div class="bank-item-card" data-bank-id="sbi">
+          <div class="bank-item-top">
+            <div class="bank-badge-avatar sbi">SBI</div>
+            <div class="bank-info-col">
+              <div class="bank-acc-name">State Bank of India</div>
+              <div class="bank-acc-meta font-mono">Savings A/C •••••••• 4291 | IFSC: SBIN0001042</div>
+            </div>
+          </div>
+          <div class="bank-item-balance-row">
+            <div class="bank-bal-display">
+              <span class="bank-bal-lbl">Available Balance:</span>
+              <span class="bank-bal-val font-mono masked" id="bal-val-sbi">₹••••••••</span>
+            </div>
+            <button type="button" class="btn-check-single-bal" id="btn-check-bal-sbi" data-bank="sbi" data-bank-name="State Bank of India" data-acc="4291" data-initials="SBI">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              <span>Check Balance</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- ICICI Bank Limited -->
+        <div class="bank-item-card" data-bank-id="icici">
+          <div class="bank-item-top">
+            <div class="bank-badge-avatar icici">ICICI</div>
+            <div class="bank-info-col">
+              <div class="bank-acc-name">ICICI Bank Limited</div>
+              <div class="bank-acc-meta font-mono">Salary A/C •••••••• 8102 | IFSC: ICIC0000341</div>
+            </div>
+          </div>
+          <div class="bank-item-balance-row">
+            <div class="bank-bal-display">
+              <span class="bank-bal-lbl">Available Balance:</span>
+              <span class="bank-bal-val font-mono masked" id="bal-val-icici">₹••••••••</span>
+            </div>
+            <button type="button" class="btn-check-single-bal" id="btn-check-bal-icici" data-bank="icici" data-bank-name="ICICI Bank Limited" data-acc="8102" data-initials="ICICI">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              <span>Check Balance</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Axis Bank Limited -->
+        <div class="bank-item-card" data-bank-id="axis">
+          <div class="bank-item-top">
+            <div class="bank-badge-avatar axis">AXIS</div>
+            <div class="bank-info-col">
+              <div class="bank-acc-name">Axis Bank Limited</div>
+              <div class="bank-acc-meta font-mono">Current A/C •••••••• 9940 | IFSC: UTIB0001280</div>
+            </div>
+          </div>
+          <div class="bank-item-balance-row">
+            <div class="bank-bal-display">
+              <span class="bank-bal-lbl">Available Balance:</span>
+              <span class="bank-bal-val font-mono masked" id="bal-val-axis">₹••••••••</span>
+            </div>
+            <button type="button" class="btn-check-single-bal" id="btn-check-bal-axis" data-bank="axis" data-bank-name="Axis Bank Limited" data-acc="9940" data-initials="AXIS">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              <span>Check Balance</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="bb-modal-footer">
+        <div class="bb-security-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          <span>Secured by NPCI BB84 Quantum Channel & 256-Bit AEAD Encryption</span>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- INTERACTIVE 4-DIGIT UPI PIN MODAL -->
