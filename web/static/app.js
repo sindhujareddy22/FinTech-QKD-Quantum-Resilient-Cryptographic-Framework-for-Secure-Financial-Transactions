@@ -1,6 +1,6 @@
 /**
  * QuPay UPI Web Application — Client Controller
- * Clean, modern UPI Payment Portal inspired by GPay, PhonePe, and Cred.
+ * Professional, clean FinTech UPI payment experience.
  */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -15,11 +15,11 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentPayee = {
     name: "Bob Sharma",
     upi: "bob@okhdfcbank",
-    avatar: "👨‍💻",
+    initials: "BS",
     bank: "HDFC Bank",
   };
 
-  // Web Audio Synthesizer for Clean UPI Sound Effects
+  // Web Audio Synthesizer for Clean Interaction Sound Effects
   const audioCtx = (typeof window.AudioContext !== "undefined" || typeof window.webkitAudioContext !== "undefined")
     ? new (window.AudioContext || window.webkitAudioContext)()
     : null;
@@ -76,8 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function showToast(message, type = "info") {
     const toast = document.createElement("div");
     toast.className = `toast toast-${type}`;
-    const icon = type === "error" ? "⚠️" : type === "success" ? "✔" : "ℹ️";
-    toast.innerHTML = `<span style="font-size: 1.1rem;">${icon}</span> <span>${message}</span>`;
+    toast.innerHTML = `<span>${message}</span>`;
     toastContainer.appendChild(toast);
     setTimeout(() => {
       toast.style.opacity = "0";
@@ -92,7 +91,6 @@ document.addEventListener("DOMContentLoaded", () => {
     "transfer-tab": document.getElementById("pane-transfer-tab"),
     "passbook-tab": document.getElementById("pane-passbook-tab"),
     "qr-tab": document.getElementById("pane-qr-tab"),
-    "rewards-tab": document.getElementById("pane-rewards-tab"),
   };
 
   function switchTab(tabId) {
@@ -156,6 +154,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // PIN Modal Elements
   const modalPinOverlay = document.getElementById("modal-pin-overlay");
   const btnClosePinModal = document.getElementById("btn-close-pin-modal");
+  const modalPayeeAvatar = document.getElementById("modal-payee-avatar");
   const modalPayeeName = document.getElementById("modal-payee-name");
   const modalPayeeUpi = document.getElementById("modal-payee-upi");
   const modalPayeeAmount = document.getElementById("modal-payee-amount");
@@ -188,10 +187,8 @@ document.addEventListener("DOMContentLoaded", () => {
     isBalanceVisible = !isBalanceVisible;
     if (isBalanceVisible) {
       mainBalanceDigits.textContent = `₹${userBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
-      balanceEyeBtn.textContent = "👁️";
     } else {
       mainBalanceDigits.textContent = "₹••••••••";
-      balanceEyeBtn.textContent = "🙈";
     }
     playSound("tap");
   });
@@ -241,7 +238,7 @@ document.addEventListener("DOMContentLoaded", () => {
           btn.type = "button";
           btn.className = `contact-pill-btn ${idx === 0 ? "selected" : ""}`;
           btn.innerHTML = `
-            <span class="cp-avatar">${contact.avatar}</span>
+            <div class="cp-initials-badge">${contact.initials || 'UPI'}</div>
             <div>
               <div class="cp-name">${contact.name}</div>
               <div class="cp-upi font-mono">${contact.upi}</div>
@@ -292,7 +289,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const amount = parseFloat(inputTransferAmount.value) || 0;
 
     if (!name || !upi) {
-      showToast("Please enter recipient name and valid UPI VPA.", "error");
+      showToast("Please enter beneficiary name and valid UPI ID.", "error");
       playSound("error");
       return;
     }
@@ -302,11 +299,12 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     if (amount > userBalance) {
-      showToast("Insufficient balance in your HDFC account.", "error");
+      showToast("Insufficient settlement balance in account.", "error");
       playSound("error");
       return;
     }
 
+    modalPayeeAvatar.textContent = currentPayee.initials || "UPI";
     modalPayeeName.textContent = name;
     modalPayeeUpi.textContent = upi;
     modalPayeeAmount.textContent = `₹${amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
@@ -362,11 +360,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const payeeName = inputPayeeName.value.trim();
     const payeeUpi = inputPayeeUpi.value.trim();
     const amount = parseFloat(inputTransferAmount.value) || 0;
-    const note = inputTransferNote.value.trim() || "UPI Transfer";
+    const note = inputTransferNote.value.trim() || "Corporate Payment Settlement";
 
     btnProceedToPay.disabled = true;
     btnProceedToPay.style.opacity = "0.7";
-    btnProceedToPay.innerHTML = `<span>Processing Payment...</span>`;
+    btnProceedToPay.innerHTML = `<span>Processing Settlement...</span>`;
 
     try {
       const res = await fetch("/api/payment/create", {
@@ -389,7 +387,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       setTimeout(() => {
         playSound("success");
-        showToast(`✔ ₹${amount.toLocaleString("en-IN")} paid successfully to ${payeeName}`, "success");
+        showToast(`Payment of ₹${amount.toLocaleString("en-IN")} settled to ${payeeName}`, "success");
 
         // Populate Receipt Modal
         receiptTimestamp.textContent = txn.timestamp;
@@ -402,36 +400,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
         modalReceiptOverlay.classList.remove("hidden");
 
-        // Unlock next reward card visually
-        const lockedCard = document.getElementById("next-scratch-card");
-        if (lockedCard) {
-          lockedCard.className = "scratch-card unlocked";
-          lockedCard.innerHTML = `
-            <div class="card-inner">
-              <span class="reward-icon">🎉</span>
-              <div class="reward-amount font-mono">₹${Math.floor(Math.random() * 40 + 10)} Cashback</div>
-              <div class="reward-note">Credited to HDFC Bank A/C</div>
-            </div>
-          `;
-        }
-
         fetchAccountStatus();
         fetchHistory();
 
         isProcessingPayment = false;
         btnProceedToPay.disabled = false;
         btnProceedToPay.style.opacity = "1";
-        btnProceedToPay.innerHTML = `<span>Pay ₹<span id="btn-amount-display">${amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span></span> <span class="btn-arrow">&rarr;</span>`;
-      }, 600);
+        btnProceedToPay.innerHTML = `<span>Authorize Transfer ₹<span id="btn-amount-display">${amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span></span> <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>`;
+      }, 500);
 
     } catch (err) {
       console.error("Payment failed:", err);
-      showToast("Payment processing error. Please try again.", "error");
+      showToast("Settlement error. Please try again.", "error");
       playSound("error");
       isProcessingPayment = false;
       btnProceedToPay.disabled = false;
       btnProceedToPay.style.opacity = "1";
-      btnProceedToPay.innerHTML = `<span>Pay ₹<span id="btn-amount-display">${amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span></span> <span class="btn-arrow">&rarr;</span>`;
+      btnProceedToPay.innerHTML = `<span>Authorize Transfer ₹<span id="btn-amount-display">${amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span></span> <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>`;
     }
   }
 
@@ -466,7 +451,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderRecentFeed() {
     if (transactionsHistory.length === 0) {
-      recentTxnsFeed.innerHTML = `<div class="empty-state-text">No transactions recorded yet. Make your first payment.</div>`;
+      recentTxnsFeed.innerHTML = `<div class="empty-state-text">No settlements recorded yet. Initiate your first transfer.</div>`;
       return;
     }
     recentTxnsFeed.innerHTML = "";
@@ -483,7 +468,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="font-mono" style="font-weight: 800; color: ${isSettled ? '#34d399' : '#f87171'}; font-size: 0.95rem;">
             ${isSettled ? '-' : ''}₹${txn.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
           </div>
-          <div style="font-size: 0.68rem; color: #94a3b8;">${isSettled ? 'Successful' : 'Failed'}</div>
+          <div style="font-size: 0.68rem; color: #94a3b8;">${isSettled ? 'Settled' : 'Failed'}</div>
         </div>
       `;
       recentTxnsFeed.appendChild(div);
@@ -500,7 +485,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (filtered.length === 0) {
       passbookTableTbody.innerHTML = `
         <tr class="empty-row">
-          <td colspan="7">No ${currentFilter === 'ALL' ? '' : currentFilter.toLowerCase()} transactions recorded.</td>
+          <td colspan="7">No ${currentFilter === 'ALL' ? '' : currentFilter.toLowerCase()} settlements recorded.</td>
         </tr>
       `;
       return;
@@ -524,11 +509,11 @@ document.addEventListener("DOMContentLoaded", () => {
         <td class="font-mono" style="font-weight: 800; font-size: 0.95rem;">₹${txn.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
         <td>
           <span class="status-badge-pill ${isSettled ? 'success' : 'failed'}">
-            ${isSettled ? '✔ Successful' : '✖ Failed'}
+            ${isSettled ? 'Settled' : 'Failed'}
           </span>
         </td>
         <td>
-          <button class="btn-view-receipt" data-txnid="${txn.txn_id}">Receipt 🔍</button>
+          <button class="btn-view-receipt" data-txnid="${txn.txn_id}">Receipt</button>
         </td>
       `;
 
@@ -562,7 +547,7 @@ document.addEventListener("DOMContentLoaded", () => {
   btnRefreshPassbook.addEventListener("click", () => {
     fetchHistory();
     fetchAccountStatus();
-    showToast("Passbook statement synchronized.", "info");
+    showToast("Statement synchronized.", "info");
     playSound("tap");
   });
 

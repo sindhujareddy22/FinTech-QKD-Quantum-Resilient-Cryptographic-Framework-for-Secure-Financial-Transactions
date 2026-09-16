@@ -55,12 +55,12 @@ STATE = {
 }
 
 CONTACTS = [
-    {"name": "Bob Sharma", "upi": "bob@okhdfcbank", "avatar": "👨‍💻", "phone": "+91 98765 43210", "bank": "HDFC Bank"},
-    {"name": "Alice Merchant", "upi": "alice@okicici", "avatar": "👩‍💼", "phone": "+91 98123 45678", "bank": "ICICI Bank"},
-    {"name": "Carol Crypto", "upi": "carol@oksbi", "avatar": "👩‍💻", "phone": "+91 97001 12233", "bank": "State Bank of India"},
-    {"name": "Quantum Cloud", "upi": "server@quantum", "avatar": "☁️", "phone": "+91 90000 88888", "bank": "Reserve Quantum Bank"},
-    {"name": "Starbucks Coffee", "upi": "starbucks@okaxis", "avatar": "☕", "phone": "+91 91234 56789", "bank": "Axis Bank"},
-    {"name": "Zomato Orders", "upi": "zomato@okpaytm", "avatar": "🍕", "phone": "+91 99887 76655", "bank": "Paytm Payments Bank"},
+    {"name": "Bob Sharma", "upi": "bob@okhdfcbank", "initials": "BS", "phone": "+91 98765 43210", "bank": "HDFC Bank"},
+    {"name": "Alice Merchant", "upi": "alice@okicici", "initials": "AM", "phone": "+91 98123 45678", "bank": "ICICI Bank"},
+    {"name": "Carol Danvers", "upi": "carol@oksbi", "initials": "CD", "phone": "+91 97001 12233", "bank": "State Bank of India"},
+    {"name": "Rahul Verma", "upi": "rahul@okaxis", "initials": "RV", "phone": "+91 90000 88888", "bank": "Axis Bank"},
+    {"name": "Priya Patel", "upi": "priya@okicici", "initials": "PP", "phone": "+91 91234 56789", "bank": "ICICI Bank"},
+    {"name": "Zomato Online", "upi": "zomato@okpaytm", "initials": "ZO", "phone": "+91 99887 76655", "bank": "Paytm Payments Bank"},
 ]
 
 
