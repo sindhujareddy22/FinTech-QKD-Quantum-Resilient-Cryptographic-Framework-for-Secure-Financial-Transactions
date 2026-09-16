@@ -4,210 +4,125 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Quantum Engine: Qiskit](https://img.shields.io/badge/Quantum%20Engine-Qiskit%202.x-6929C4.svg)](https://qiskit.org/)
 [![Cryptography: AES-256-GCM](https://img.shields.io/badge/AEAD-AES--256--GCM-green.svg)](https://csrc.nist.gov/)
+[![Dashboard: Streamlit](https://img.shields.io/badge/Dashboard-Streamlit-FF4B4B.svg)](https://streamlit.io/)
 
-A modular, production-grade Python simulation demonstrating how **Quantum Key Distribution (BB84 Protocol)** enables future-proof, quantum-safe cryptographic key agreement for securing high-value interbank and financial transactions.
-
----
-
-## Table of Contents
-1. [Executive Summary & Motivation](#executive-summary--motivation)
-2. [Theoretical Foundations & Cryptographic Reasoning](#theoretical-foundations--cryptographic-reasoning)
-   - [Shor's Algorithm & "Harvest Now, Decrypt Later"](#shors-algorithm--harvest-now-decrypt-later)
-   - [BB84 Protocol Mechanics](#bb84-protocol-mechanics)
-   - [No-Cloning Theorem & State Disturbance](#no-cloning-theorem--state-disturbance)
-   - [QBER Threshold Derivation](#qber-threshold-derivation)
-   - [The Authentication Caveat (Preventing Classical MITM)](#the-authentication-caveat-preventing-classical-mitm)
-3. [Architecture & Project Structure](#architecture--project-structure)
-4. [Installation & Setup](#installation--setup)
-5. [How to Run (Single Command)](#how-to-run-single-command)
-6. [Results & Comparative Security Analysis](#results--comparative-security-analysis)
-7. [Running the Automated Test Suite](#running-the-automated-test-suite)
+A university-grade, production-quality Python application demonstrating how **Quantum Key Distribution (BB84 Protocol)** enables future-proof cryptographic protection for financial transaction streams against "Harvest Now, Decrypt Later" (HNDL) quantum threats.
 
 ---
 
-## Executive Summary & Motivation
+## 🎯 Key Design: Continuous Quantum Re-Keying & Mid-Stream Eavesdropping Catch
 
-Global financial settlement systems (e.g., SWIFT, Fedwire, CHIPS, TARGET2) protect trillions of dollars in daily transaction volume using public-key cryptography (RSA, ECDSA, ECDH).
-
-### The Threat: "Harvest Now, Decrypt Later" (HNDL)
-Adversaries and nation-states are currently intercepting and storing encrypted high-value financial data. When cryptanalytically relevant quantum computers (CRQCs) emerge, **Shor's algorithm** will solve the Discrete Logarithm and Prime Factorization problems in polynomial time ($\mathcal{O}((\log N)^3)$), retroactively breaking all recorded RSA/ECC ciphertexts.
-
-### The Solution: QKD + AES-256-GCM
-This project demonstrates an end-to-end quantum-resilient pipeline:
-1. **BB84 QKD**: Alice and Bob establish an unconditionally secure symmetric key using single-photon quantum states.
-2. **Eavesdropping Detection**: Any intercept attempt by Eve perturbs the quantum state, inducing a measurable **Quantum Bit Error Rate (QBER)** that aborts key generation before any payload is encrypted.
-3. **AES-256-GCM AEAD**: Grover's quantum search algorithm only reduces AES-256 to 128 bits of security, leaving AES-256-GCM practically unbreakable for encrypting synthetic financial messages.
+Unlike static demos that exchange a single key once, this application models genuine continuous QKD:
+1. **Per-Transaction Quantum Re-Keying**: Before *every* synthetic financial transaction, Alice and Bob execute a fresh BB84 quantum exchange to derive a unique, single-use 256-bit symmetric key.
+2. **Per-Transaction QBER Integrity Verification**: The system continuously samples and measures the **Quantum Bit Error Rate (QBER)** for each individual transaction round.
+   - If $\text{QBER} < 11.00\%$: Key accepted $\rightarrow$ Payload encrypted via AES-256-GCM $\rightarrow$ **`SETTLED`**.
+   - If $\text{QBER} \ge 11.00\%$: Key rejected $\rightarrow$ Transaction **`BLOCKED`** immediately $\rightarrow$ Live alert raised!
+3. **Mid-Stream Runtime Adversary Toggle**: The user can toggle Eve (the eavesdropper) **ON or OFF at runtime while the stream is actively running**. When Eve is flipped ON, the very next transaction's QBER spikes ($\sim 25\%$), and the alert fires instantaneously!
 
 ---
 
-## Theoretical Foundations & Cryptographic Reasoning
-
-### 1. BB84 Protocol Mechanics (Two Simulation Levels)
-
-The BB84 protocol (Bennett & Brassard, 1984) uses two non-orthogonal conjugate measurement bases:
-- **Rectilinear ($+$ / $Z$) Basis**: State $|0\rangle$ (Horizontal, bit `0`) and $|1\rangle$ (Vertical, bit `1`).
-- **Diagonal ($\times$ / $X$) Basis**: State $|+\rangle = \frac{|0\rangle + |1\rangle}{\sqrt{2}}$ ($+45^\circ$, bit `0`) and $|-\rangle = \frac{|0\rangle - |1\rangle}{\sqrt{2}}$ ($-45^\circ$, bit `1`).
-
-```
-                    BB84 POLARIZATION ENCODING
-  Bit    Rectilinear (+) Basis      Diagonal (x) Basis
- ──────────────────────────────────────────────────────────
-   0             |0⟩ (↑)              |+⟩ = (|0⟩+|1⟩)/√2 (↗)
-   1             |1⟩ (→)              |-⟩ = (|0⟩-|1⟩)/√2 (↘)
-```
-
-#### Why Mismatched Bases Randomize Measurement Outcomes
-When Bob measures a state prepared in basis $\mathcal{B}_A$ using an incompatible conjugate basis $\mathcal{B}_B \neq \mathcal{B}_A$, the state vector has equal projections onto both eigenstates of Bob's measurement operator. According to the Born rule:
-$$P(\text{outcome } 0) = |\langle 0 | + \rangle|^2 = \left|\frac{1}{\sqrt{2}}\right|^2 = \frac{1}{2} = 50\%$$
-$$P(\text{outcome } 1) = |\langle 1 | + \rangle|^2 = \left|\frac{1}{\sqrt{2}}\right|^2 = \frac{1}{2} = 50\%$$
-Thus, Bob measures a purely random bit when bases differ.
-
-### 2. No-Cloning Theorem & State Disturbance
-By the Wootters-Zurek No-Cloning Theorem (1982), Eve cannot create an identical replica of an unknown arbitrary quantum state $|\psi\rangle$. 
-
-When Eve executes an **Intercept-and-Resend Attack**:
-1. Eve must measure the photon in a guessed basis.
-2. If Eve chooses the wrong basis (50% probability), she projects the state into her basis and re-transmits it.
-3. When Bob measures in Alice's original basis, he has a 50% probability of error on that photon.
-4. Total expected error injected into the sifted key:
-$$\text{QBER}_{\text{expected}} = P(\text{Eve wrong basis}) \times P(\text{Bob error} \mid \text{Eve wrong}) = \frac{1}{2} \times \frac{1}{2} = 25\%$$
-
-### 3. QBER Threshold Derivation ($\sim 11\%$)
-Using the Csiszár-Körner bound on secret key generation capacity:
-$$\Delta I = I(A; B) - I(A; E)$$
-For standard one-way classical post-processing, when $\text{QBER} > 11.0\%$, Eve's mutual information $I(A; E)$ surpasses Bob's mutual information $I(A; B)$, making secure privacy amplification mathematically impossible. Therefore, the protocol **must abort** whenever $\text{QBER} > 11\%$.
-
-### 4. The Authentication Caveat (Preventing Classical MITM)
-> **CRITICAL SECURITY NOTE:**
-> QKD guarantees confidentiality of key exchange over the quantum channel, but **QKD does NOT authenticate identities**.
-> Without an authenticated classical channel, an active adversary can perform a classical Man-in-the-Middle (MITM) attack (talking as Bob to Alice and Alice to Bob).
-> 
-> **Solution in this framework:**
-> The public discussion channel is authenticated using **HMAC-SHA256** (or Post-Quantum Digital Signatures). Because QKD yields far more key bits than the small number consumed by the MAC, QKD acts as a **Quantum Key Expander/Grower**.
-
----
-
-## Architecture & Project Structure
+## 📁 Project Architecture & Modules
 
 ```
 .
-├── main.py                     # Single-command CLI & Demo runner
-├── requirements.txt            # Python dependencies (Qiskit, PyCryptodome, Faker, etc.)
-├── README.md                   # Complete architectural & cryptographic documentation
-├── qkd/                        # BB84 Quantum Key Distribution engine
+├── main.py                     # Single-command launcher (Streamlit Live Dashboard / CLI)
+├── requirements.txt            # Python dependencies (Streamlit, Qiskit, PyCryptodome, Faker, Pandas)
+├── README.md                   # Full documentation & demonstration guide
+├── app/                        # Live Streamlit Dashboard Application
 │   ├── __init__.py
-│   ├── protocol.py             # Data models (Photon, Basis, QKDResult, Privacy Amplification)
-│   ├── bb84_classical.py       # Level 1: Classical probabilistic simulation
-│   └── bb84_qiskit.py          # Level 2: Real Qiskit quantum circuits (X, H gates, AerSimulator)
+│   └── main.py                 # Interactive stream controller, live QBER chart & feed
+├── qkd/                        # BB84 Quantum Key Distribution core
+│   ├── __init__.py
+│   ├── protocol.py             # Data models, Photon representation, SHA-256 Privacy Amplification
+│   ├── bb84_classical.py       # Level 1: Classical probabilistic logic simulation
+│   └── bb84_qiskit.py          # Level 2: Real Qiskit quantum circuits (X, H gates, Aer/Basic simulator)
 ├── auth/                       # Classical channel authentication
 │   ├── __init__.py
-│   └── channel.py              # HMAC-SHA256 signed messaging & MITM detection
-├── crypto/                     # Symmetric encryption layer
+│   └── channel.py              # HMAC-SHA256 authenticated messaging preventing classical MITM
+├── crypto/                     # Symmetric post-quantum encryption
 │   ├── __init__.py
-│   └── aes_gcm.py              # AES-256-GCM AEAD cipher with GMAC integrity tags
-├── transactions/               # Synthetic financial transaction engine
+│   └── aes_gcm.py              # AES-256-GCM AEAD cipher with GMAC integrity validation
+├── transactions/               # Synthetic financial transactions
 │   ├── __init__.py
-│   └── generator.py            # Faker-based SWIFT/Fedwire transaction generator
-├── eve/                        # Eavesdropper & adversarial interceptor
+│   └── generator.py            # Faker-based SWIFT/Fedwire synthetic transaction generator
+├── eve/                        # Adversarial interception simulation
 │   ├── __init__.py
-│   └── eavesdropper.py         # Intercept-and-resend attack simulator
-├── demo/                       # Terminal dashboard & comparative runner
+│   └── eavesdropper.py         # Intercept-and-resend attack simulator with runtime toggle
+├── demo/                       # Terminal CLI comparative runner
 │   ├── __init__.py
-│   ├── dashboard.py            # ANSI-colored cryptographic visualizer
+│   ├── dashboard.py            # ANSI terminal visualizer
 │   └── main.py                 # Scenario orchestrator
-└── tests/                      # Comprehensive unit test suite
+└── tests/                      # Automated unit test suite
     ├── test_qkd.py             # Level 1 & Level 2 QKD tests
     └── test_crypto_and_system.py # Crypto, Auth, Transactions, Eve tests
 ```
 
 ---
 
-## Installation & Setup
+## 🔬 Theoretical Foundations & Cryptographic Reasoning
 
-### Prerequisites
-- Python 3.10, 3.11, 3.12, 3.13, or 3.14
-- Virtual environment (recommended)
+### 1. Conjugate Bases & Born Rule Measurement
+The BB84 protocol uses two mutually unbiased conjugate bases:
+- **Rectilinear ($+$ / $Z$) Basis**: State $|0\rangle$ (Bit `0`) and $|1\rangle$ (Bit `1`).
+- **Diagonal ($\times$ / $X$) Basis**: State $|+\rangle = \frac{|0\rangle + |1\rangle}{\sqrt{2}}$ (Bit `0`) and $|-\rangle = \frac{|0\rangle - |1\rangle}{\sqrt{2}}$ (Bit `1`).
 
-### Installation
-```bash
-# 1. Create and activate a virtual environment
-python3 -m venv venv
-source venv/bin/activate
+When Bob measures a state prepared in basis $\mathcal{B}_A$ with basis $\mathcal{B}_B \neq \mathcal{B}_A$, the state vector projects equally onto both eigenstates. By the Born rule:
+$$P(\text{outcome } 0) = |\langle 0 | + \rangle|^2 = 50\%, \quad P(\text{outcome } 1) = |\langle 1 | + \rangle|^2 = 50\%$$
+Mismatched bases therefore yield pure cryptographic noise and are discarded during authenticated basis sifting.
 
-# 2. Install dependencies
-pip install -r requirements.txt
-```
+### 2. No-Cloning Theorem & State Disturbance
+By the Wootters-Zurek No-Cloning Theorem (1982), Eve cannot copy unknown quantum states.
+In an **Intercept-and-Resend Attack**:
+- Eve guesses the basis randomly (50% chance of wrong basis).
+- Measuring in the wrong basis collapses the superposition into Eve's basis.
+- When Bob measures in Alice's basis, Bob has a 50% probability of an error on that photon.
+$$\text{Expected QBER} = P(\text{Eve wrong basis}) \times P(\text{Bob error} \mid \text{Eve wrong}) = \frac{1}{2} \times \frac{1}{2} = 25\%$$
+
+### 3. The 11% QBER Safety Threshold
+By the Csiszár-Körner secret key capacity bound:
+$$\Delta I = I(A; B) - I(A; E)$$
+When $\text{QBER} > 11.00\%$, Eve's mutual information exceeds Bob's mutual information, making secure privacy amplification impossible. The protocol **aborts key generation**, preventing any financial plaintext from being encrypted.
+
+### 4. Channel Authentication Caveat (Preventing Classical MITM)
+> **Critical Concept:** QKD guarantees key confidentiality over the quantum channel, but **does not authenticate identities**.
+> Without authentication, Eve can mount a classical Man-in-the-Middle (MITM) attack. This framework authenticates the classical reconciliation channel using **HMAC-SHA256**. Because BB84 produces vastly more key bits than consumed by the MAC, QKD acts as a **Quantum Key Expander/Grower**.
 
 ---
 
-## How to Run (Single Command)
+## 🚀 How to Run (Single Command)
 
-### Run Default End-to-End Demonstration
+### 1. Launch Live Streamlit Dashboard (Default)
 ```bash
 python main.py
+# or
+streamlit run app/main.py
 ```
+📍 Opens automatically at: **`http://localhost:8501`**
 
-### Run with Real Qiskit Quantum Circuits (Level 2)
+### 2. Run CLI Comparative Runner
 ```bash
-python main.py --level 2
+python main.py --cli
 ```
 
-### Run All Levels Consecutively (Level 1 + Level 2)
-```bash
-python main.py --all-levels
-```
-
-### Advanced CLI Options
-```bash
-# Custom raw qubit count (e.g., 1024 qubits) and partial eavesdropping (50%)
-python main.py --level 2 --bits 1024 --intercept 0.5
-```
-
----
-
-## Results & Comparative Security Analysis
-
-### Clean Run (Honest Channel) vs Attacked Run (Eve Active)
-
-```
-┌── [Executive Summary: Clean vs Attacked Comparison] ────────────────────┐
-│ Metric                         │ Clean Run         │ Attacked Run (Eve) │
-├────────────────────────────────┼───────────────────┼────────────────────┤
-│ Raw Quantum Bits (Photons)     │ 512               │ 512                │
-│ Sifted Key Length              │ 255               │ 252                │
-│ Sample Error Count             │ 0                 │ 7                  │
-│ Quantum Bit Error Rate (QBER)  │ 0.00%             │ 14.00% - 28.00%    │
-│ Security Threshold (Max QBER)  │ 11.00%            │ 11.00%             │
-│ Shared AES-256 Key Derived     │ Yes (Secure)      │ NO (Aborted)       │
-│ Financial Transaction Action   │ SETTLED           │ BLOCKED            │
-└────────────────────────────────┴───────────────────┴────────────────────┘
-```
-
-### Key Findings & Cryptographic Takeaways:
-1. **Clean Channel Reliability**:
-   - In the absence of an eavesdropper, photon polarizations remain undisturbed.
-   - Sifted bits match with 100% fidelity ($\text{QBER} = 0.00\%$).
-   - Privacy amplification condenses the sifted bits into a 256-bit AES key.
-   - High-value interbank transfer is encrypted via AES-256-GCM, transmitted, decrypted, and settled with verified GMAC integrity.
-
-2. **Guaranteed Eavesdropping Detection**:
-   - When Eve intercepts the channel, quantum state collapse injects an average of $\sim 25\%$ error into matching-basis measurements.
-   - Public sample estimation detects this spike immediately ($\text{QBER} \gg 11.00\%$).
-   - The key exchange protocol is **aborted**, and zero plaintext financial payloads or ciphertexts are exposed.
-
----
-
-## Running the Automated Test Suite
-
-To verify all unit tests, cryptographic invariants, and simulation levels:
-
+### 3. Run Automated Unit Test Suite
 ```bash
 python -m unittest discover -s tests -p "test_*.py"
 ```
 
-Expected output:
-```
-Ran 10 tests in 0.045s
+---
 
-OK
-```
+## 🎬 How to Demo Live (Step-by-Step Script)
+
+1. **Start the Clean Stream**:
+   - Open **`http://localhost:8501`**.
+   - Click **`▶️ Start Live Stream`** with Eve disabled.
+   - *Observation*: Transactions stream sequentially every ~0.8s. All transactions show green **`SETTLED`** badges, QBER stays at **`0.00%`**, and the live chart shows a flat line well below the 11% red threshold.
+2. **Flip Eve ON Mid-Stream**:
+   - While the stream is actively running, toggle **`⚠️ Enable Eavesdropper (Eve)`** in the sidebar.
+   - *Observation*: On the **very next transaction**, the QBER immediately spikes to **`25.00% - 30.00%`**. The system instantly aborts key derivation, the transaction is marked **`BLOCKED`**, and a prominent red alert banner fires:
+     > **🚨 EAVESDROPPER DETECTED — TRANSACTION BLOCKED!**
+3. **Turn Eve OFF Mid-Stream**:
+   - Switch Eve back to **`OFF`**.
+   - *Observation*: The next transaction returns to **`0.00% QBER`**, the alert clears, and transactions resume settling normally.
+4. **Switch to Qiskit Circuit Simulation**:
+   - Select **`Level 2 (Qiskit Quantum Circuits)`** to show that genuine quantum circuits (with Pauli-X and Hadamard gates) are being executed for each transaction key.
