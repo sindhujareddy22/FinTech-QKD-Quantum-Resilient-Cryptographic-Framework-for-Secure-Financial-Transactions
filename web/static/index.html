@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FinTech QKD — Quantum-Resilient Cryptographic Framework</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Ambient Quantum Glow Background -->
+  <div class="glow-orb orb-1"></div>
+  <div class="glow-orb orb-2"></div>
+  <div class="glow-orb orb-3"></div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="navbar">
+      <div class="logo-group">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="9" stroke="url(#qgrad)" stroke-width="2"></circle>
+            <ellipse cx="12" cy="12" rx="9" ry="3" stroke="#00f2fe" stroke-width="1.5" transform="rotate(30 12 12)"></ellipse>
+            <ellipse cx="12" cy="12" rx="9" ry="3" stroke="#4facfe" stroke-width="1.5" transform="rotate(-30 12 12)"></ellipse>
+            <circle cx="12" cy="12" r="2.5" fill="#00f2fe"></circle>
+            <defs>
+              <linearGradient id="qgrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#00f2fe"/>
+                <stop offset="100%" stop-color="#4facfe"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">FinTech <span class="gradient-text">QKD Engine</span></h1>
+          <p class="brand-subtitle">Quantum-Resilient BB84 Key Distribution & AES-256-GCM Financial Settlement</p>
+        </div>
+      </div>
+      <div class="status-badges">
+        <div class="badge badge-pulse"><span class="pulse-dot"></span> Quantum Link: Active</div>
+        <div class="badge badge-cipher">AES-256-GCM</div>
+        <div class="badge badge-auth">HMAC-SHA256 Auth</div>
+      </div>
+    </header>
+
+    <!-- Main Dashboard Grid -->
+    <main class="dashboard-grid">
+      
+      <!-- Control Panel & Configuration -->
+      <section class="glass-card control-card">
+        <div class="card-header">
+          <div class="card-title-icon">⚙️</div>
+          <div>
+            <h2>Protocol Controls & Attack Simulation</h2>
+            <p class="card-desc">Configure BB84 quantum parameters and simulate adversarial interception</p>
+          </div>
+        </div>
+
+        <div class="controls-form">
+          <!-- Simulation Level -->
+          <div class="control-group">
+            <label class="control-label">Simulation Engine</label>
+            <div class="toggle-buttons">
+              <button type="button" class="btn-toggle active" id="btn-level-1" data-level="1">
+                <span class="btn-icon">⚡</span> Level 1 (Classical Logic)
+              </button>
+              <button type="button" class="btn-toggle" id="btn-level-2" data-level="2">
+                <span class="btn-icon">⚛️</span> Level 2 (Qiskit Quantum Circuit)
+              </button>
+            </div>
+          </div>
+
+          <!-- Raw Qubits Slider -->
+          <div class="control-group">
+            <div class="slider-header">
+              <label class="control-label" for="qubits-slider">Raw Photons / Qubits (Alice)</label>
+              <span class="slider-val" id="qubits-val">512 qubits</span>
+            </div>
+            <input type="range" id="qubits-slider" min="128" max="1024" step="128" value="512" class="range-slider" />
+          </div>
+
+          <!-- Eve Eavesdropper Toggle & Slider -->
+          <div class="control-group eve-group" id="eve-container">
+            <div class="eve-header">
+              <div class="eve-title-wrap">
+                <span class="eve-avatar">🕵️‍♀️</span>
+                <div>
+                  <label class="control-label">Eavesdropper (Eve) Interception</label>
+                  <p class="eve-subtext">Intercept-and-resend attack collapsing quantum superpositions</p>
+                </div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="eve-toggle" />
+                <span class="slider-round"></span>
+              </label>
+            </div>
+
+            <div class="eve-slider-wrap" id="eve-slider-wrap" style="display: none;">
+              <div class="slider-header">
+                <label class="control-label" for="eve-rate-slider">Interception Probability</label>
+                <span class="slider-val highlight-red" id="eve-rate-val">100% (Full Interception)</span>
+              </div>
+              <input type="range" id="eve-rate-slider" min="10" max="100" step="5" value="100" class="range-slider range-red" />
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="action-buttons">
+            <button class="btn btn-primary" id="btn-run-sim">
+              <span class="btn-icon">🚀</span> Run Simulation
+            </button>
+            <button class="btn btn-success" id="btn-quick-clean">
+              <span class="btn-icon">🛡️</span> Clean Channel
+            </button>
+            <button class="btn btn-danger" id="btn-quick-attack">
+              <span class="btn-icon">⚠️</span> Attack Channel
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Quantum Channel Visualizer -->
+      <section class="glass-card channel-card">
+        <div class="card-header">
+          <div class="card-title-icon">🔬</div>
+          <div>
+            <h2>Quantum Channel Physical Topology</h2>
+            <p class="card-desc">Single-photon polarization states in transit from Alice to Bob</p>
+          </div>
+        </div>
+
+        <div class="quantum-topology">
+          <!-- Alice Station -->
+          <div class="station-box alice-station">
+            <div class="station-icon">👩‍💻</div>
+            <div class="station-name">Alice (Bank A)</div>
+            <div class="station-role">Photon Transmitter</div>
+            <div class="station-tags">
+              <span class="tag">Laser Source</span>
+              <span class="tag">Bases: +, ×</span>
+            </div>
+          </div>
+
+          <!-- Channel Path with Flying Photons -->
+          <div class="channel-link">
+            <div class="fiber-line"></div>
+            <div class="photon-beam" id="photon-beam">
+              <!-- Animated Photons Rendered Here -->
+            </div>
+            
+            <!-- Eve Node in the middle -->
+            <div class="eve-node" id="eve-node">
+              <div class="eve-node-icon">🕵️‍♀️</div>
+              <div class="eve-node-label" id="eve-node-label">Eve: Inactive</div>
+            </div>
+          </div>
+
+          <!-- Bob Station -->
+          <div class="station-box bob-station">
+            <div class="station-icon">👨‍💻</div>
+            <div class="station-name">Bob (Bank B)</div>
+            <div class="station-role">Quantum Receiver</div>
+            <div class="station-tags">
+              <span class="tag">Polarization Filter</span>
+              <span class="tag">SPAD Detector</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Metric Gauges Row -->
+        <div class="metrics-row">
+          <div class="metric-card">
+            <div class="metric-label">Raw Photons</div>
+            <div class="metric-val" id="metric-raw">512</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Sifted Key (Matched Bases)</div>
+            <div class="metric-val text-blue" id="metric-sifted">256 bits</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Public Sample Checked</div>
+            <div class="metric-val" id="metric-sample">52 bits</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Sample Bit Errors</div>
+            <div class="metric-val" id="metric-errors">0 errors</div>
+          </div>
+          <div class="metric-card metric-qber-box" id="qber-card">
+            <div class="metric-label">Quantum Bit Error Rate (QBER)</div>
+            <div class="qber-gauge-wrap">
+              <div class="metric-val-large" id="metric-qber">0.00%</div>
+              <div class="qber-threshold-indicator">
+                Threshold: <span class="threshold-badge">11.00%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Security Outcome Banner -->
+        <div class="security-banner banner-idle" id="security-banner">
+          <div class="banner-icon" id="banner-icon">⏳</div>
+          <div>
+            <div class="banner-title" id="banner-title">Ready for Execution</div>
+            <div class="banner-desc" id="banner-desc">Select parameters and click 'Run Simulation' to observe QKD key exchange.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Sifted Bitstream & Photon Inspector -->
+      <section class="glass-card bitstream-card">
+        <div class="card-header">
+          <div class="card-title-icon">📊</div>
+          <div>
+            <h2>Photon Polarization & Sifting Inspector</h2>
+            <p class="card-desc">Inspection of individual quantum states, bases, and measurement outcomes</p>
+          </div>
+        </div>
+
+        <div class="bitstream-table-container">
+          <div class="bitstream-legend">
+            <span class="legend-item"><span class="legend-box match-box"></span> Basis Matched (Sifted)</span>
+            <span class="legend-item"><span class="legend-box mismatch-box"></span> Incompatible Basis (Discarded)</span>
+            <span class="legend-item"><span class="legend-box error-box"></span> Sample Error (Eve Disturbance)</span>
+          </div>
+
+          <div class="photon-grid" id="photon-grid">
+            <!-- Grid cells rendered by app.js -->
+          </div>
+        </div>
+      </section>
+
+      <!-- FinTech Transaction & Settlement Panel -->
+      <section class="glass-card transaction-card">
+        <div class="card-header">
+          <div class="card-title-icon">💳</div>
+          <div>
+            <h2>Financial Settlement & AES-256-GCM AEAD</h2>
+            <p class="card-desc">Synthetic high-value interbank transaction secured by the QKD-derived symmetric key</p>
+          </div>
+        </div>
+
+        <div class="transaction-content">
+          <div class="txn-details-box" id="txn-details-box">
+            <div class="txn-row"><span class="txn-k">Transaction ID:</span> <span class="txn-v font-mono" id="txn-id">TXN-INIT</span></div>
+            <div class="txn-row"><span class="txn-k">From Account:</span> <span class="txn-v font-mono" id="txn-from">ACCT-PENDING</span></div>
+            <div class="txn-row"><span class="txn-k">To Account:</span> <span class="txn-v font-mono" id="txn-to">ACCT-PENDING</span></div>
+            <div class="txn-row"><span class="txn-k">Transfer Amount:</span> <span class="txn-v txn-amount" id="txn-amount">$0.00</span></div>
+            <div class="txn-row"><span class="txn-k">Category:</span> <span class="txn-v" id="txn-category">Interbank Settlement</span></div>
+            <div class="txn-row"><span class="txn-k">Routing Protocol:</span> <span class="txn-v font-mono" id="txn-routing">FEDWIRE / SWIFT</span></div>
+          </div>
+
+          <!-- Cryptographic AEAD Payload Box -->
+          <div class="cipher-box" id="cipher-box">
+            <div class="cipher-header">
+              <span>🔐 AES-256-GCM Authenticated Envelope</span>
+              <span class="badge badge-secure" id="cipher-status-badge">Awaiting Key</span>
+            </div>
+            <div class="cipher-fields">
+              <div class="cipher-field">
+                <span class="c-label">AES Key (SHA-256 PA):</span>
+                <span class="c-val font-mono" id="cipher-key">--</span>
+              </div>
+              <div class="cipher-field">
+                <span class="c-label">96-bit Nonce (IV):</span>
+                <span class="c-val font-mono" id="cipher-nonce">--</span>
+              </div>
+              <div class="cipher-field">
+                <span class="c-label">Ciphertext (B64):</span>
+                <span class="c-val font-mono" id="cipher-ciphertext">--</span>
+              </div>
+              <div class="cipher-field">
+                <span class="c-label">128-bit GMAC Tag:</span>
+                <span class="c-val font-mono" id="cipher-tag">--</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Final Settlement Decision Stamp -->
+          <div class="settlement-decision stamp-pending" id="settlement-stamp">
+            <div class="stamp-title" id="stamp-title">AWAITING SETTLEMENT</div>
+            <div class="stamp-sub" id="stamp-sub">Run simulation to trigger QKD key agreement</div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div>FinTech QKD Framework • Post-Quantum Cryptographic Assurance • Quantum Key Distribution Simulation</div>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
