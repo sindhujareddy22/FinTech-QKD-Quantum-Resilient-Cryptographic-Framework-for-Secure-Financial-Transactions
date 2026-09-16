@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FinTech QKD — Quantum-Resilient Financial Settlement Portal</title>
+  <title>QuPay Web — Quantum-Resilient UPI Payment & Settlement Portal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -11,456 +11,713 @@
 </head>
 <body>
 
-  <!-- Ambient Quantum Gradients Background -->
+  <!-- Ambient Glow Effects -->
   <div class="ambient-glow glow-top-left"></div>
   <div class="ambient-glow glow-top-right"></div>
   <div class="ambient-glow glow-bottom-center"></div>
 
-  <!-- Notification Toast Container -->
+  <!-- Live Toast Container -->
   <div class="toast-container" id="toast-container"></div>
 
-  <!-- Main Application Container -->
-  <div class="app-layout">
+  <!-- Main Web App Container -->
+  <div class="web-app-container">
     
     <!-- Top Executive Navigation Bar -->
-    <header class="app-header">
-      <div class="header-left">
-        <div class="brand-container">
-          <div class="brand-logo-icon">
-            <span class="atom-core">⚛️</span>
-            <span class="orbit-ring"></span>
+    <header class="app-navbar">
+      <div class="nav-left">
+        <div class="app-brand">
+          <div class="brand-logo">
+            <span class="brand-icon">⚡</span>
+            <span class="quantum-ring"></span>
           </div>
           <div>
-            <div class="brand-title">FinTech <span class="brand-highlight">QKD</span></div>
-            <div class="brand-subtitle">Quantum-Resilient Cryptographic Framework</div>
+            <div class="brand-name">QuPay <span class="badge-upi">UPI Web</span></div>
+            <div class="brand-tagline">Quantum-Resilient Unified Payments Interface</div>
           </div>
         </div>
 
-        <div class="security-status-badge secure" id="header-security-badge">
-          <span class="status-pulse-dot"></span>
-          <span id="header-security-text">Quantum Channel: SECURE (QBER: 0.00%)</span>
-        </div>
+        <!-- Main Navigation Tabs -->
+        <nav class="nav-tabs">
+          <button class="nav-tab active" data-tab="transfer-hub">
+            <span>💳 Transfer & Pay</span>
+          </button>
+          <button class="nav-tab" data-tab="quantum-channel">
+            <span>⚛️ Quantum Channel</span>
+          </button>
+          <button class="nav-tab" data-tab="passbook">
+            <span>📑 UPI Passbook</span>
+          </button>
+          <button class="nav-tab" data-tab="my-qr">
+            <span>📱 My QR & Account</span>
+          </button>
+        </nav>
       </div>
 
-      <!-- Attacker Simulation & Engine Suite -->
-      <div class="header-right">
-        <!-- Engine Selector -->
-        <div class="control-pill engine-pill">
-          <span class="pill-label">Engine:</span>
-          <span class="pill-value font-mono" id="current-engine-label">Classical BB84</span>
-          <button class="btn-pill-action" id="btn-engine-toggle" title="Switch between Classical Logic & Qiskit Circuit Simulation">Switch to Qiskit</button>
+      <div class="nav-right">
+        <!-- Live Quantum Security Status -->
+        <div class="security-indicator secure" id="header-security-badge">
+          <span class="status-dot"></span>
+          <span id="header-security-text">Channel: SECURE (QBER: 0.00%)</span>
         </div>
 
-        <!-- Eve Attacker Simulation Toggle -->
-        <div class="control-pill attacker-pill" id="attacker-pill">
-          <span class="pill-icon">🕵️‍♀️</span>
-          <span class="pill-label">Eve Intercept:</span>
+        <!-- Engine Mode Switcher -->
+        <div class="control-badge" id="engine-badge-pill">
+          <span class="ctrl-label">Engine:</span>
+          <span class="ctrl-val font-mono" id="current-engine-label">Classical BB84</span>
+          <button class="btn-ctrl-action" id="btn-engine-toggle">Toggle Qiskit</button>
+        </div>
+
+        <!-- Eavesdropper Attacker Simulation Switch -->
+        <div class="control-badge attacker-badge" id="attacker-badge">
+          <span class="ctrl-icon">🕵️‍♀️</span>
+          <span class="ctrl-label">Eve Intercept:</span>
           <label class="switch">
             <input type="checkbox" id="attacker-eve-switch" />
             <span class="slider-round"></span>
           </label>
-          <span class="eve-status-text" id="eve-status-label">OFF (Honest)</span>
+          <span class="eve-state-text" id="eve-state-text">OFF</span>
         </div>
 
-        <!-- Reset Button -->
-        <button class="btn-header-secondary" id="btn-reset-demo" title="Reset balances and transactions">
-          <span>🔄 Reset Demo</span>
-        </button>
+        <!-- User Profile Pill -->
+        <div class="user-profile-pill">
+          <div class="user-avatar">SR</div>
+          <div class="user-details">
+            <span class="user-name">Spandana Rao</span>
+            <span class="user-upi font-mono">spandana@okquantum</span>
+          </div>
+        </div>
       </div>
     </header>
 
-    <!-- Top KPI Metrics Bar -->
-    <section class="kpi-metrics-grid">
-      <div class="kpi-card balance-kpi">
-        <div class="kpi-card-glow"></div>
-        <div class="kpi-header">
-          <span class="kpi-title">Available Settlement Balance</span>
-          <span class="kpi-badge">QRB Reserve</span>
-        </div>
-        <div class="kpi-val-row">
-          <span class="kpi-value font-mono" id="kpi-balance-display">₹1,25,000.00</span>
-          <button class="kpi-eye-btn" id="kpi-eye-toggle">👁️</button>
-        </div>
-        <div class="kpi-footer">
-          <span class="kpi-subtext">Sender: <strong>Spandana Rao</strong> (<code>spandana@okquantum</code>)</span>
-        </div>
-      </div>
+    <!-- Top UPI Account & Summary Card -->
+    <section class="upi-hero-bar">
+      <div class="upi-bank-card">
+        <div class="bank-card-content">
+          <div class="bank-card-top">
+            <div class="bank-identity">
+              <span class="bank-emblem">🏛️</span>
+              <div>
+                <div class="bank-name">Quantum Reserve Bank of India (QRB)</div>
+                <div class="bank-acc font-mono">A/C No: •••••••• 4920 | IFSC: QRB0004920</div>
+              </div>
+            </div>
+            <span class="qkd-protect-tag">🛡️ Continuous BB84 AEAD Protected</span>
+          </div>
 
-      <div class="kpi-card">
-        <div class="kpi-header">
-          <span class="kpi-title">Total Settled Volume</span>
-          <span class="kpi-icon-badge text-green">✔ Verified</span>
-        </div>
-        <div class="kpi-value font-mono text-green" id="kpi-settled-amount">₹0.00</div>
-        <div class="kpi-footer">
-          <span class="kpi-subtext"><strong id="kpi-settled-count">0</strong> transactions AES-256 encrypted</span>
-        </div>
-      </div>
+          <div class="bank-card-mid">
+            <div class="balance-block">
+              <span class="balance-title">Available UPI Balance</span>
+              <div class="balance-amount-row">
+                <span class="balance-amount font-mono" id="main-balance-display">₹1,25,000.00</span>
+                <button class="eye-btn" id="balance-eye-toggle" title="Toggle balance visibility">👁️</button>
+                <button class="btn-refresh-balance" id="btn-refresh-balance" title="Sync balance">🔄</button>
+              </div>
+            </div>
 
-      <div class="kpi-card">
-        <div class="kpi-header">
-          <span class="kpi-title">Blocked Compromised Funds</span>
-          <span class="kpi-icon-badge text-red">🚨 Intercepted</span>
-        </div>
-        <div class="kpi-value font-mono text-red" id="kpi-blocked-amount">₹0.00</div>
-        <div class="kpi-footer">
-          <span class="kpi-subtext"><strong id="kpi-blocked-count">0</strong> transactions auto-aborted</span>
-        </div>
-      </div>
-
-      <div class="kpi-card">
-        <div class="kpi-header">
-          <span class="kpi-title">Quantum Security Margin</span>
-          <span class="kpi-icon-badge text-cyan">⚛️ BB84</span>
-        </div>
-        <div class="kpi-value font-mono text-cyan" id="kpi-qber-display">0.00% QBER</div>
-        <div class="kpi-footer">
-          <span class="kpi-subtext">Threshold: <strong>11.00%</strong> (Shor/Eve Limit)</span>
+            <div class="quick-stats-row">
+              <div class="stat-box">
+                <span class="stat-label">Total Settled (₹)</span>
+                <span class="stat-value font-mono text-emerald" id="stat-settled-sum">₹0.00</span>
+              </div>
+              <div class="stat-box">
+                <span class="stat-label">Blocked Compromised (₹)</span>
+                <span class="stat-value font-mono text-rose" id="stat-blocked-sum">₹0.00</span>
+              </div>
+              <div class="stat-box">
+                <span class="stat-label">Total Transactions</span>
+                <span class="stat-value font-mono" id="stat-total-txns">0</span>
+              </div>
+              <div class="stat-box">
+                <span class="stat-label">Latest QBER</span>
+                <span class="stat-value font-mono text-cyan" id="stat-latest-qber">0.00%</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- Main Operational Workspace (3 Columns) -->
-    <main class="dashboard-grid">
-      
-      <!-- COLUMN 1: Financial Transfer & UPI Terminal -->
-      <section class="panel-card payment-terminal-panel">
-        <div class="panel-header">
-          <div class="panel-title-wrap">
-            <span class="panel-icon">💳</span>
-            <div>
-              <h2 class="panel-title">Payment & Transfer Terminal</h2>
-              <p class="panel-subtitle">Create custom synthetic financial transaction</p>
+    <!-- MAIN TAB 1: Transfer & Pay (UPI Hub) -->
+    <section class="tab-pane active" id="pane-transfer-hub">
+      <div class="transfer-hub-grid">
+        
+        <!-- Left: UPI Transfer Terminal -->
+        <div class="card-surface transfer-form-card">
+          <div class="card-header">
+            <div class="header-title-group">
+              <span class="header-icon">💸</span>
+              <div>
+                <h2 class="card-title">Send Money via UPI</h2>
+                <p class="card-subtitle">Real-time quantum-encrypted instant payment</p>
+              </div>
             </div>
+            <span class="badge-pill">NPCI • UPI 2.0</span>
           </div>
-          <span class="badge-mini">UPI 2.0</span>
-        </div>
 
-        <form id="payment-form" class="payment-form" onsubmit="return false;">
-          <!-- Quick Contact Picker -->
-          <div class="form-group">
-            <label class="form-label">Select Recipient Contact</label>
-            <div class="contacts-scroll-row" id="contacts-picker-row">
+          <!-- Quick Contacts Row -->
+          <div class="form-section">
+            <label class="section-label">Quick Contacts</label>
+            <div class="contacts-grid" id="contacts-grid">
               <!-- Dynamically populated contacts -->
             </div>
           </div>
 
-          <!-- Payee Details Input -->
-          <div class="form-row-2">
-            <div class="form-group">
-              <label class="form-label" for="input-payee-name">Payee Name</label>
-              <input type="text" id="input-payee-name" class="form-input" placeholder="e.g. Bob Sharma" required value="Bob Sharma" />
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="input-payee-upi">Payee UPI VPA</label>
-              <input type="text" id="input-payee-upi" class="form-input font-mono" placeholder="e.g. bob@okhdfcbank" required value="bob@okhdfcbank" />
-            </div>
-          </div>
+          <!-- Transfer Inputs -->
+          <div class="transfer-inputs-wrapper">
+            <div class="input-grid-2">
+              <div class="form-field">
+                <label class="field-label" for="inp-payee-name">Recipient Name</label>
+                <input type="text" id="inp-payee-name" class="input-text" placeholder="e.g. Bob Sharma" value="Bob Sharma" />
+              </div>
 
-          <!-- Amount Input -->
-          <div class="form-group">
-            <label class="form-label" for="input-amount">Transfer Amount (INR ₹)</label>
-            <div class="amount-input-wrapper">
-              <span class="currency-symbol">₹</span>
-              <input type="number" id="input-amount" class="form-input amount-field font-mono" min="1" max="100000" step="50" value="500" required />
-            </div>
-            <!-- Quick Amount Chips -->
-            <div class="quick-amounts">
-              <button type="button" class="amount-chip" data-val="250">+₹250</button>
-              <button type="button" class="amount-chip" data-val="500">+₹500</button>
-              <button type="button" class="amount-chip" data-val="2000">+₹2,000</button>
-              <button type="button" class="amount-chip" data-val="10000">+₹10,000</button>
-            </div>
-          </div>
-
-          <!-- Purpose / Note -->
-          <div class="form-group">
-            <label class="form-label" for="input-note">Transaction Purpose / Note</label>
-            <input type="text" id="input-note" class="form-input" placeholder="e.g. Server infrastructure invoice" value="Quantum Security Demo Transfer" />
-          </div>
-
-          <!-- UPI 4-Digit Security PIN -->
-          <div class="form-group">
-            <div class="pin-header-row">
-              <label class="form-label">Authorize with UPI PIN</label>
-              <span class="pin-hint">Default: <code>1234</code></span>
-            </div>
-            <div class="pin-boxes-row">
-              <input type="password" maxlength="1" class="pin-box" id="pin-1" value="1" />
-              <input type="password" maxlength="1" class="pin-box" id="pin-2" value="2" />
-              <input type="password" maxlength="1" class="pin-box" id="pin-3" value="3" />
-              <input type="password" maxlength="1" class="pin-box" id="pin-4" value="4" />
-            </div>
-          </div>
-
-          <!-- Action Buttons -->
-          <button type="button" id="btn-submit-payment" class="btn-primary-action">
-            <span class="btn-icon">⚡</span>
-            <span class="btn-text">Execute Quantum Transfer</span>
-          </button>
-        </form>
-      </section>
-
-      <!-- COLUMN 2: Live Quantum Optical Channel & Coin Transfer Simulation -->
-      <section class="panel-card optical-channel-panel">
-        <div class="panel-header">
-          <div class="panel-title-wrap">
-            <span class="panel-icon">🔬</span>
-            <div>
-              <h2 class="panel-title">Optical Quantum Channel Visualizer</h2>
-              <p class="panel-subtitle">Alice (Sender) $\leftrightarrow$ Bob (Receiver) BB84 Link</p>
-            </div>
-          </div>
-          <div class="channel-mode-pill" id="visualizer-channel-mode">
-            <span class="mode-dot"></span>
-            <span id="visualizer-mode-text">Channel Ready</span>
-          </div>
-        </div>
-
-        <!-- Interactive Quantum Arena Canvas -->
-        <div class="quantum-arena" id="quantum-arena">
-          
-          <!-- Alice Node (Sender) -->
-          <div class="arena-party-node node-alice">
-            <div class="party-avatar">👩‍💼</div>
-            <div class="party-name">Alice (Sender)</div>
-            <div class="party-role">Photon Prep (X/Z)</div>
-            <div class="party-status-indicator active">Laser Online</div>
-          </div>
-
-          <!-- Eve Node (Eavesdropper Intercept Probe) -->
-          <div class="arena-eve-probe" id="arena-eve-probe">
-            <div class="eve-probe-core">
-              <span class="eve-probe-icon">🕵️‍♀️</span>
-              <span class="eve-probe-label">Eve Interceptor</span>
-            </div>
-            <div class="eve-tap-beam" id="eve-tap-beam"></div>
-            <div class="eve-sniff-badge" id="eve-sniff-badge">Tapping Channel (100%)</div>
-          </div>
-
-          <!-- Optical Fiber Link & Laser Beam -->
-          <div class="optical-fiber-track" id="optical-fiber-track">
-            <div class="fiber-glow-core" id="fiber-glow-core"></div>
-            <!-- Flying Coins and Photons will be dynamically injected here -->
-            <div class="particles-layer" id="particles-layer"></div>
-          </div>
-
-          <!-- Bob Node (Receiver) -->
-          <div class="arena-party-node node-bob">
-            <div class="party-avatar">👨‍💻</div>
-            <div class="party-name" id="arena-bob-name">Bob (Receiver)</div>
-            <div class="party-role">Basis Measurement</div>
-            <div class="party-status-indicator active">Detector Ready</div>
-          </div>
-        </div>
-
-        <!-- Live Step Progression Pipeline -->
-        <div class="pipeline-container">
-          <div class="pipeline-title">BB84 $\rightarrow$ AES-256-GCM Protocol Pipeline</div>
-          <div class="pipeline-steps-grid">
-            <div class="step-card" id="step-1">
-              <div class="step-num">1</div>
-              <div class="step-info">
-                <div class="step-name">Photon Prep</div>
-                <div class="step-desc font-mono">512 Qubits</div>
+              <div class="form-field">
+                <label class="field-label" for="inp-payee-upi">Recipient UPI ID (VPA)</label>
+                <input type="text" id="inp-payee-upi" class="input-text font-mono" placeholder="e.g. bob@okhdfcbank" value="bob@okhdfcbank" />
               </div>
             </div>
-            <div class="step-card" id="step-2">
-              <div class="step-num">2</div>
-              <div class="step-info">
-                <div class="step-name">Basis Sifting</div>
-                <div class="step-desc font-mono" id="step-sift-desc">~256 Bits</div>
+
+            <!-- Amount & Chips -->
+            <div class="form-field">
+              <label class="field-label">Transfer Amount (INR)</label>
+              <div class="amount-field-container">
+                <span class="currency-symbol">₹</span>
+                <input type="number" id="inp-amount" class="input-text amount-input font-mono" min="1" max="100000" step="50" value="500" />
+              </div>
+              <div class="amount-preset-chips">
+                <button type="button" class="preset-chip" data-amt="200">+₹200</button>
+                <button type="button" class="preset-chip" data-amt="500">+₹500</button>
+                <button type="button" class="preset-chip" data-amt="2000">+₹2,000</button>
+                <button type="button" class="preset-chip" data-amt="10000">+₹10,000</button>
+                <button type="button" class="preset-chip" data-amt="50000">+₹50,000</button>
               </div>
             </div>
-            <div class="step-card" id="step-3">
-              <div class="step-num">3</div>
-              <div class="step-info">
-                <div class="step-name">QBER Error Check</div>
-                <div class="step-desc font-mono" id="step-qber-desc">&theta; &lt; 11%</div>
+
+            <!-- Note / Message -->
+            <div class="form-field">
+              <label class="field-label" for="inp-note">Add a Message / Note</label>
+              <input type="text" id="inp-note" class="input-text" placeholder="e.g. Chai & Snacks, Cloud Server Invoice" value="Quantum Resilient UPI Settlement" />
+            </div>
+
+            <!-- Debit From Account -->
+            <div class="form-field">
+              <label class="field-label">Debit From</label>
+              <div class="debit-account-selector">
+                <div class="bank-icon-sm">🏛️</div>
+                <div class="debit-details">
+                  <span class="debit-bank">Quantum Reserve Bank •••• 4920</span>
+                  <span class="debit-balance font-mono">Available: ₹1,25,000.00</span>
+                </div>
+                <span class="check-pill">Selected</span>
               </div>
             </div>
-            <div class="step-card" id="step-4">
-              <div class="step-num">4</div>
-              <div class="step-info">
-                <div class="step-name">AES-256-GCM</div>
-                <div class="step-desc font-mono" id="step-aes-desc">AEAD GMAC</div>
+
+            <!-- Action Button -->
+            <button type="button" id="btn-open-pin-modal" class="btn-primary-pay">
+              <span class="btn-icon">⚡</span>
+              <span>Proceed to Pay ₹<span id="btn-pay-amount-label">500.00</span></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Right: Real-time Mini Quantum Laser & Live Feed -->
+        <div class="card-surface live-status-side-card">
+          <div class="card-header">
+            <div class="header-title-group">
+              <span class="header-icon">🔬</span>
+              <div>
+                <h2 class="card-title">Live Quantum Link Activity</h2>
+                <p class="card-subtitle">Continuous BB84 re-keying status</p>
               </div>
             </div>
-            <div class="step-card" id="step-5">
-              <div class="step-num">5</div>
-              <div class="step-info">
-                <div class="step-name">Settlement</div>
-                <div class="step-desc font-mono" id="step-settle-desc">HMAC Auth</div>
+            <span class="badge-pill secure" id="mini-channel-badge">Honest Channel</span>
+          </div>
+
+          <!-- Visual Laser Fiber Link Preview -->
+          <div class="mini-laser-box" id="mini-laser-box">
+            <div class="mini-node node-a">
+              <span class="node-icon">👩‍💼</span>
+              <span class="node-title">Alice</span>
+              <span class="node-tag">Sender</span>
+            </div>
+
+            <div class="mini-fiber-line">
+              <div class="mini-laser-beam" id="mini-laser-beam"></div>
+              <div class="mini-particles" id="mini-particles"></div>
+              <div class="mini-eve-spy" id="mini-eve-spy">
+                <span>🕵️‍♀️ Eve Tapping</span>
               </div>
             </div>
-          </div>
-        </div>
 
-        <!-- Mid-Stream Breach Alert Box (Reveals when Eve triggers breach) -->
-        <div class="breach-alert-box hidden" id="breach-alert-box">
-          <div class="breach-alert-icon">🚨</div>
-          <div class="breach-alert-content">
-            <div class="breach-alert-title">CRITICAL SECURITY BREACH DETECTED</div>
-            <div class="breach-alert-msg" id="breach-alert-msg">
-              Quantum Bit Error Rate exceeded safe physical threshold (11.00%). Eavesdropper active on optical channel. Key generation aborted and payment blocked.
+            <div class="mini-node node-b">
+              <span class="node-icon">👨‍💻</span>
+              <span class="node-title" id="mini-node-bob-name">Bob</span>
+              <span class="node-tag">Receiver</span>
             </div>
           </div>
-        </div>
-      </section>
 
-      <!-- COLUMN 3: Cryptographic Telemetry & Key Inspector -->
-      <section class="panel-card telemetry-panel">
-        <div class="panel-header">
-          <div class="panel-title-wrap">
-            <span class="panel-icon">🔐</span>
-            <div>
-              <h2 class="panel-title">Cryptographic Inspector</h2>
-              <p class="panel-subtitle">Per-transaction quantum keys & GMAC proof</p>
+          <!-- Protocol Metrics Breakdown -->
+          <div class="mini-metrics-grid">
+            <div class="mini-metric-item">
+              <span class="m-label">Quantum Bit Error Rate</span>
+              <span class="m-value font-mono" id="m-qber-val">0.00%</span>
+              <span class="m-sub">Safety Limit: <strong>11.00%</strong></span>
+            </div>
+            <div class="mini-metric-item">
+              <span class="m-label">Photon Bits Transmitted</span>
+              <span class="m-value font-mono">512 Qubits</span>
+              <span class="m-sub">Bases: <strong>Rectilinear / Diagonal</strong></span>
+            </div>
+            <div class="mini-metric-item">
+              <span class="m-label">Derived AES Key</span>
+              <span class="m-value font-mono text-cyan" id="m-aes-key-preview">--</span>
+              <span class="m-sub">Cipher: <strong>AES-256-GCM AEAD</strong></span>
+            </div>
+            <div class="mini-metric-item">
+              <span class="m-label">Classical Channel MITM</span>
+              <span class="m-value font-mono text-emerald" id="m-hmac-preview">--</span>
+              <span class="m-sub">Auth: <strong>HMAC-SHA256</strong></span>
             </div>
           </div>
-          <span class="badge-mini" id="badge-key-status">No Txn Yet</span>
-        </div>
 
-        <!-- QBER Gauge Meter -->
-        <div class="gauge-card">
-          <div class="gauge-header">
-            <span class="gauge-label">Quantum Bit Error Rate (QBER)</span>
-            <span class="gauge-value font-mono" id="telemetry-qber-val">0.00%</span>
-          </div>
-          <div class="gauge-bar-wrapper">
-            <div class="gauge-bar-fill" id="gauge-bar-fill" style="width: 0%;"></div>
-            <div class="gauge-threshold-line" title="Safety Threshold: 11.00%">
-              <span class="threshold-tag">&theta;=11%</span>
+          <!-- Mini Recent Activity List -->
+          <div class="mini-recent-list-section">
+            <div class="mini-list-header">
+              <span class="m-list-title">Recent UPI Transactions</span>
+              <button class="btn-link" id="link-view-all-passbook">View All &rarr;</button>
+            </div>
+            <div class="mini-recent-items" id="mini-recent-items">
+              <div class="empty-state-mini">No transactions yet. Send money to initiate BB84 key exchange.</div>
             </div>
           </div>
-          <div class="gauge-legend">
-            <span>0% (Secure)</span>
-            <span class="text-warning">11% Threshold</span>
-            <span class="text-danger">&ge; 25% (Eve Intercept)</span>
-          </div>
-        </div>
-
-        <!-- Telemetry Data Grid -->
-        <div class="telemetry-specs-grid">
-          <div class="spec-item">
-            <span class="spec-label">Raw Qubits</span>
-            <span class="spec-val font-mono" id="spec-raw-bits">512</span>
-          </div>
-          <div class="spec-item">
-            <span class="spec-label">Sifted Key Bits</span>
-            <span class="spec-val font-mono" id="spec-sifted-bits">--</span>
-          </div>
-          <div class="spec-item">
-            <span class="spec-label">Sample Errors</span>
-            <span class="spec-val font-mono" id="spec-errors">--</span>
-          </div>
-          <div class="spec-item">
-            <span class="spec-label">Key Status</span>
-            <span class="spec-val font-mono" id="spec-key-status">STANDBY</span>
-          </div>
-        </div>
-
-        <!-- Cryptographic Proof Details -->
-        <div class="crypto-proof-box">
-          <div class="proof-row">
-            <span class="proof-label">Derived 256-Bit AES Key (Hex):</span>
-            <div class="proof-code font-mono" id="proof-aes-key">--</div>
-          </div>
-
-          <div class="proof-row">
-            <span class="proof-label">AES-256-GCM 128-Bit GMAC Tag:</span>
-            <div class="proof-code font-mono" id="proof-gmac-tag">--</div>
-          </div>
-
-          <div class="proof-row">
-            <span class="proof-label">HMAC-SHA256 Channel Signature:</span>
-            <div class="proof-code font-mono" id="proof-hmac-tag">--</div>
-          </div>
-
-          <div class="proof-row">
-            <span class="proof-label">AEAD Ciphertext Preview:</span>
-            <div class="proof-code font-mono ciphertext-preview" id="proof-ciphertext">--</div>
-          </div>
-        </div>
-
-        <!-- Interactive Tamper Test Button -->
-        <button type="button" id="btn-tamper-test" class="btn-secondary-action" disabled>
-          <span>🛡️ Tamper Payload & Test GMAC Rejection</span>
-        </button>
-      </section>
-    </main>
-
-    <!-- BOTTOM FULL-WIDTH: Financial Passbook & Quantum Ledger -->
-    <section class="panel-card passbook-panel">
-      <div class="passbook-header-row">
-        <div class="panel-title-wrap">
-          <span class="panel-icon">📑</span>
-          <div>
-            <h2 class="panel-title">Financial Passbook & Quantum Audit Ledger</h2>
-            <p class="panel-subtitle">Real-time ledger with full cryptographic proof for each settlement</p>
-          </div>
-        </div>
-
-        <!-- Filter Buttons -->
-        <div class="filter-pills-row">
-          <button class="filter-pill active" data-filter="ALL">All Records (<span id="count-filter-all">0</span>)</button>
-          <button class="filter-pill" data-filter="SETTLED">Settled (<span id="count-filter-settled">0</span>)</button>
-          <button class="filter-pill" data-filter="BLOCKED">Blocked (<span id="count-filter-blocked">0</span>)</button>
-          <button class="btn-refresh-history" id="btn-refresh-history" title="Refresh history">🔄 Refresh</button>
         </div>
       </div>
+    </section>
 
-      <!-- Table Container -->
-      <div class="table-responsive">
-        <table class="passbook-table">
-          <thead>
-            <tr>
-              <th>Txn ID</th>
-              <th>Timestamp</th>
-              <th>Recipient (Payee)</th>
-              <th>Sender</th>
-              <th>Amount</th>
-              <th>Status</th>
-              <th>QBER</th>
-              <th>Engine</th>
-              <th>GMAC Tag</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="passbook-tbody">
-            <tr class="empty-row">
-              <td colspan="10">No transactions recorded yet. Use the terminal above to execute a quantum payment.</td>
-            </tr>
-          </tbody>
-        </table>
+    <!-- MAIN TAB 2: Quantum Channel Visualizer -->
+    <section class="tab-pane" id="pane-quantum-channel">
+      <div class="quantum-channel-full-grid">
+        
+        <!-- Big Optical Quantum Arena -->
+        <div class="card-surface arena-card">
+          <div class="card-header">
+            <div class="header-title-group">
+              <span class="header-icon">⚛️</span>
+              <div>
+                <h2 class="card-title">Real-Time BB84 Quantum Channel & Photon Beam</h2>
+                <p class="card-subtitle">Laser link, photon polarization, Eve intercept probe & 3D golden coins</p>
+              </div>
+            </div>
+            <div class="channel-status-pill" id="full-arena-status-pill">
+              <span class="status-dot"></span>
+              <span id="full-arena-status-text">Laser Channel Online</span>
+            </div>
+          </div>
+
+          <!-- Optical Arena Canvas -->
+          <div class="big-quantum-arena" id="big-quantum-arena">
+            <!-- Alice Transmitter -->
+            <div class="arena-station station-alice">
+              <div class="station-badge">Alice (Transmitter)</div>
+              <div class="station-avatar">👩‍💼</div>
+              <div class="station-details">
+                <span class="station-role">Single-Photon Laser Source</span>
+                <span class="station-state font-mono">Bases: {+, &times;} | Bits: {0, 1}</span>
+              </div>
+            </div>
+
+            <!-- Eve Intercept Station (Top) -->
+            <div class="arena-station-eve" id="arena-station-eve">
+              <div class="eve-drone-box">
+                <span class="eve-drone-icon">🕵️‍♀️</span>
+                <div>
+                  <div class="eve-drone-title">Eve (Quantum Interceptor)</div>
+                  <div class="eve-drone-status" id="eve-drone-status">INACTIVE (Honest Channel)</div>
+                </div>
+              </div>
+              <div class="eve-tap-laser" id="eve-tap-laser"></div>
+            </div>
+
+            <!-- Fiber Channel -->
+            <div class="arena-fiber-channel" id="arena-fiber-channel">
+              <div class="fiber-beam-core" id="fiber-beam-core"></div>
+              <div class="arena-particles-layer" id="arena-particles-layer"></div>
+            </div>
+
+            <!-- Bob Receiver -->
+            <div class="arena-station station-bob">
+              <div class="station-badge">Bob (Receiver)</div>
+              <div class="station-avatar">👨‍💻</div>
+              <div class="station-details">
+                <span class="station-role">Single-Photon Avalanche Diode</span>
+                <span class="station-state font-mono">Random Measurement Bases</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5-Step Pipeline -->
+          <div class="pipeline-flow-container">
+            <div class="flow-step" id="f-step-1">
+              <div class="step-circle">1</div>
+              <div class="step-text">
+                <span class="step-head">Photon Prep</span>
+                <span class="step-sub font-mono">512 Polarized Qubits</span>
+              </div>
+            </div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-step" id="f-step-2">
+              <div class="step-circle">2</div>
+              <div class="step-text">
+                <span class="step-head">Basis Sifting</span>
+                <span class="step-sub font-mono">Match Alice & Bob Bases</span>
+              </div>
+            </div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-step" id="f-step-3">
+              <div class="step-circle">3</div>
+              <div class="step-text">
+                <span class="step-head">QBER Check</span>
+                <span class="step-sub font-mono">Threshold &theta; &lt; 11%</span>
+              </div>
+            </div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-step" id="f-step-4">
+              <div class="step-circle">4</div>
+              <div class="step-text">
+                <span class="step-head">AES-256-GCM</span>
+                <span class="step-sub font-mono">AEAD Encryption + GMAC</span>
+              </div>
+            </div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-step" id="f-step-5">
+              <div class="step-circle">5</div>
+              <div class="step-text">
+                <span class="step-head">UPI Settlement</span>
+                <span class="step-sub font-mono">HMAC-Auth Channel</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Breach Alert Banner -->
+          <div class="channel-breach-banner hidden" id="channel-breach-banner">
+            <span class="breach-icon">🚨</span>
+            <div>
+              <div class="breach-head">QUANTUM SECURITY BREACH DETECTED & PREVENTED</div>
+              <div class="breach-desc" id="channel-breach-desc">
+                Eavesdropper intercepted photons on the optical channel. Induced QBER spiked above the 11.00% safety threshold. Key derivation aborted and UPI payment blocked to protect funds.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cryptographic Telemetry Card -->
+        <div class="card-surface crypto-telemetry-card">
+          <div class="card-header">
+            <div class="header-title-group">
+              <span class="header-icon">🔐</span>
+              <div>
+                <h2 class="card-title">Cryptographic Inspector</h2>
+                <p class="card-subtitle">Per-transaction quantum keys & GMAC proof</p>
+              </div>
+            </div>
+            <span class="badge-pill" id="badge-crypto-status">STANDBY</span>
+          </div>
+
+          <!-- QBER Meter -->
+          <div class="qber-meter-box">
+            <div class="qber-meter-header">
+              <span class="qber-meter-label">Quantum Bit Error Rate (QBER)</span>
+              <span class="qber-meter-val font-mono" id="full-qber-meter-val">0.00%</span>
+            </div>
+            <div class="qber-track">
+              <div class="qber-fill" id="full-qber-fill" style="width: 0%;"></div>
+              <div class="qber-threshold-marker">
+                <span class="marker-tag">11% Limit</span>
+              </div>
+            </div>
+            <div class="qber-scale">
+              <span>0% (Secure)</span>
+              <span class="text-amber">11% Threshold</span>
+              <span class="text-rose">&ge; 25% (Eve Intercept)</span>
+            </div>
+          </div>
+
+          <!-- Key Details -->
+          <div class="crypto-key-specs">
+            <div class="key-field">
+              <span class="k-label">Derived 256-Bit AES Key (Hex):</span>
+              <div class="k-code font-mono" id="full-proof-aes-key">--</div>
+            </div>
+            <div class="key-field">
+              <span class="k-label">AES-256-GCM 128-Bit GMAC Tag:</span>
+              <div class="k-code font-mono" id="full-proof-gmac-tag">--</div>
+            </div>
+            <div class="key-field">
+              <span class="k-label">HMAC-SHA256 Classical Channel Tag:</span>
+              <div class="k-code font-mono" id="full-proof-hmac-tag">--</div>
+            </div>
+            <div class="key-field">
+              <span class="k-label">Encrypted Payload Ciphertext:</span>
+              <div class="k-code font-mono ciphertext-scroll" id="full-proof-ciphertext">--</div>
+            </div>
+          </div>
+
+          <!-- Tamper Test Button -->
+          <button type="button" id="btn-full-tamper-test" class="btn-tamper" disabled>
+            <span>🛡️ Simulate 1-Bit Ciphertext Tampering & Verify GMAC Tag Rejection</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAIN TAB 3: UPI Passbook & Statement -->
+    <section class="tab-pane" id="pane-passbook">
+      <div class="card-surface passbook-card">
+        <div class="card-header">
+          <div class="header-title-group">
+            <span class="header-icon">📑</span>
+            <div>
+              <h2 class="card-title">UPI Passbook & Quantum Settlement Ledger</h2>
+              <p class="card-subtitle">Search, filter, and inspect immutable cryptographic transaction receipts</p>
+            </div>
+          </div>
+
+          <div class="passbook-actions-group">
+            <div class="filter-tabs">
+              <button class="filter-tab active" data-filter="ALL">All Records (<span id="passbook-count-all">0</span>)</button>
+              <button class="filter-tab" data-filter="SETTLED">Settled (<span id="passbook-count-settled">0</span>)</button>
+              <button class="filter-tab" data-filter="BLOCKED">Blocked (<span id="passbook-count-blocked">0</span>)</button>
+            </div>
+            <button class="btn-sync" id="btn-sync-passbook">🔄 Refresh</button>
+          </div>
+        </div>
+
+        <!-- Ledger Table -->
+        <div class="table-container">
+          <table class="upi-table">
+            <thead>
+              <tr>
+                <th>Txn ID / UTR</th>
+                <th>Date & Time</th>
+                <th>Recipient (Payee)</th>
+                <th>Sender (Payer)</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>QBER</th>
+                <th>Engine</th>
+                <th>GMAC Tag</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="upi-passbook-tbody">
+              <tr class="empty-table-row">
+                <td colspan="10">No transactions found. Make a payment from the Transfer tab.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAIN TAB 4: My QR & Account Details -->
+    <section class="tab-pane" id="pane-my-qr">
+      <div class="my-qr-grid">
+        <div class="card-surface qr-display-card">
+          <div class="card-header">
+            <div class="header-title-group">
+              <span class="header-icon">📱</span>
+              <div>
+                <h2 class="card-title">My Quantum UPI QR Code</h2>
+                <p class="card-subtitle">Scan to send money securely via BB84 encrypted channel</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="qr-center-box">
+            <div class="qr-frame">
+              <!-- SVG Rendered UPI QR -->
+              <svg class="upi-qr-svg" viewBox="0 0 200 200" width="200" height="200">
+                <rect width="200" height="200" fill="#ffffff" rx="12"/>
+                <!-- Outer Corners -->
+                <rect x="20" y="20" width="45" height="45" fill="#0f172a" rx="6"/>
+                <rect x="26" y="26" width="33" height="33" fill="#ffffff" rx="4"/>
+                <rect x="33" y="33" width="19" height="19" fill="#00f2fe" rx="2"/>
+
+                <rect x="135" y="20" width="45" height="45" fill="#0f172a" rx="6"/>
+                <rect x="141" y="26" width="33" height="33" fill="#ffffff" rx="4"/>
+                <rect x="148" y="33" width="19" height="19" fill="#00f2fe" rx="2"/>
+
+                <rect x="20" y="135" width="45" height="45" fill="#0f172a" rx="6"/>
+                <rect x="26" y="141" width="33" height="33" fill="#ffffff" rx="4"/>
+                <rect x="33" y="148" width="19" height="19" fill="#00f2fe" rx="2"/>
+
+                <!-- Quantum Matrix Pattern Dots -->
+                <rect x="80" y="25" width="12" height="12" fill="#0f172a"/>
+                <rect x="105" y="25" width="12" height="12" fill="#6366f1"/>
+                <rect x="75" y="45" width="12" height="12" fill="#0f172a"/>
+                <rect x="95" y="45" width="12" height="12" fill="#0f172a"/>
+                <rect x="115" y="45" width="12" height="12" fill="#0f172a"/>
+                
+                <rect x="25" y="80" width="12" height="12" fill="#0f172a"/>
+                <rect x="45" y="80" width="12" height="12" fill="#6366f1"/>
+                <rect x="25" y="105" width="12" height="12" fill="#0f172a"/>
+                <rect x="45" y="105" width="12" height="12" fill="#0f172a"/>
+
+                <!-- Center Quantum Logo -->
+                <rect x="75" y="75" width="50" height="50" fill="#0f172a" rx="8"/>
+                <text x="100" y="107" font-size="24" text-anchor="middle" fill="#00f2fe">⚛️</text>
+
+                <rect x="140" y="80" width="12" height="12" fill="#0f172a"/>
+                <rect x="160" y="80" width="12" height="12" fill="#0f172a"/>
+                <rect x="140" y="105" width="12" height="12" fill="#6366f1"/>
+                <rect x="160" y="105" width="12" height="12" fill="#0f172a"/>
+
+                <rect x="80" y="140" width="12" height="12" fill="#0f172a"/>
+                <rect x="100" y="140" width="12" height="12" fill="#0f172a"/>
+                <rect x="120" y="140" width="12" height="12" fill="#0f172a"/>
+                <rect x="145" y="140" width="12" height="12" fill="#0f172a"/>
+                <rect x="165" y="140" width="12" height="12" fill="#6366f1"/>
+
+                <rect x="80" y="165" width="12" height="12" fill="#6366f1"/>
+                <rect x="105" y="165" width="12" height="12" fill="#0f172a"/>
+                <rect x="130" y="165" width="12" height="12" fill="#0f172a"/>
+                <rect x="155" y="165" width="12" height="12" fill="#0f172a"/>
+              </svg>
+            </div>
+
+            <div class="qr-info-block">
+              <span class="qr-user-name">Spandana Rao</span>
+              <span class="qr-vpa font-mono">spandana@okquantum</span>
+              <span class="qr-sub">Scan with any UPI App • Quantum Protected</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-surface account-profile-card">
+          <div class="card-header">
+            <div class="header-title-group">
+              <span class="header-icon">🏛️</span>
+              <div>
+                <h2 class="card-title">Linked Bank Account & Cryptographic Profile</h2>
+                <p class="card-subtitle">Primary account for instant UPI settlements</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="profile-details-list">
+            <div class="profile-item">
+              <span class="p-lbl">Primary Bank</span>
+              <span class="p-val">Quantum Reserve Bank of India</span>
+            </div>
+            <div class="profile-item">
+              <span class="p-lbl">Account Number</span>
+              <span class="p-val font-mono">•••••••••••• 4920</span>
+            </div>
+            <div class="profile-item">
+              <span class="p-lbl">IFSC Code</span>
+              <span class="p-val font-mono">QRB0004920</span>
+            </div>
+            <div class="profile-item">
+              <span class="p-lbl">UPI VPA</span>
+              <span class="p-val font-mono text-cyan">spandana@okquantum</span>
+            </div>
+            <div class="profile-item">
+              <span class="p-lbl">Quantum Security Layer</span>
+              <span class="p-val text-emerald">Continuous BB84 Dual-Engine (512 Qubits)</span>
+            </div>
+            <div class="profile-item">
+              <span class="p-lbl">Encryption Protocol</span>
+              <span class="p-val">AES-256-GCM with GMAC Authentication</span>
+            </div>
+            <div class="profile-item">
+              <span class="p-lbl">Public Channel Authenticator</span>
+              <span class="p-val">HMAC-SHA256 Anti-MITM Keying</span>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- Footer -->
-    <footer class="app-footer">
-      <div class="footer-content">
-        <span>FinTech QKD Framework — University Demonstration Project</span>
+    <footer class="web-app-footer">
+      <div>QuPay Web — FinTech QKD Quantum-Resilient Framework • University Project Demo</div>
+      <div class="footer-tags">
+        <span>BB84 Key Distribution</span>
         <span>•</span>
-        <span>Simulated BB84 Protocol + Qiskit 2.x • AES-256-GCM AEAD • HMAC-SHA256 Auth</span>
+        <span>Qiskit 2.x Circuit Simulation</span>
         <span>•</span>
-        <span>Synthetic Financial Data Only</span>
+        <span>AES-256-GCM AEAD</span>
+        <span>•</span>
+        <span>HMAC-SHA256 Auth</span>
       </div>
     </footer>
   </div>
 
-  <!-- Detail Modal / Drawer for Transaction Inspection -->
-  <div class="modal-overlay hidden" id="txn-modal-overlay">
-    <div class="modal-card">
-      <div class="modal-header">
-        <div class="modal-title-row">
-          <span class="modal-icon" id="modal-status-icon">✔</span>
-          <h3 class="modal-title" id="modal-title">Transaction Details</h3>
+  <!-- INTERACTIVE UPI PIN MODAL -->
+  <div class="modal-backdrop hidden" id="modal-pin-backdrop">
+    <div class="pin-modal-card">
+      <div class="pin-modal-header">
+        <div class="pin-brand-row">
+          <span class="pin-app-icon">⚡</span>
+          <span class="pin-app-title">QuPay UPI Payment Authorization</span>
         </div>
-        <button class="modal-close-btn" id="modal-close-btn">✕</button>
+        <button class="pin-modal-close" id="btn-close-pin-modal">✕</button>
       </div>
 
-      <div class="modal-body" id="modal-body-content">
-        <!-- Dynamically rendered detailed crypto view -->
+      <div class="pin-modal-body">
+        <div class="pin-payee-summary">
+          <div class="summary-avatar">👤</div>
+          <div>
+            <div class="summary-payee-name" id="pin-modal-payee-name">Bob Sharma</div>
+            <div class="summary-payee-upi font-mono" id="pin-modal-payee-upi">bob@okhdfcbank</div>
+          </div>
+          <div class="summary-amount font-mono" id="pin-modal-amount">₹500.00</div>
+        </div>
+
+        <div class="pin-entry-section">
+          <div class="pin-instructions">ENTER 4-DIGIT UPI PIN</div>
+          <div class="pin-dots-row">
+            <div class="pin-dot" id="p-dot-1"></div>
+            <div class="pin-dot" id="p-dot-2"></div>
+            <div class="pin-dot" id="p-dot-3"></div>
+            <div class="pin-dot" id="p-dot-4"></div>
+          </div>
+          <div class="pin-subtext">Quantum Key Distribution will generate per-transaction AES key</div>
+        </div>
+
+        <!-- Interactive Numeric Keypad -->
+        <div class="keypad-grid">
+          <button type="button" class="num-key" data-digit="1">1</button>
+          <button type="button" class="num-key" data-digit="2">2</button>
+          <button type="button" class="num-key" data-digit="3">3</button>
+          <button type="button" class="num-key" data-digit="4">4</button>
+          <button type="button" class="num-key" data-digit="5">5</button>
+          <button type="button" class="num-key" data-digit="6">6</button>
+          <button type="button" class="num-key" data-digit="7">7</button>
+          <button type="button" class="num-key" data-digit="8">8</button>
+          <button type="button" class="num-key" data-digit="9">9</button>
+          <button type="button" class="num-key key-clear" id="key-clear">CLEAR</button>
+          <button type="button" class="num-key" data-digit="0">0</button>
+          <button type="button" class="num-key key-submit" id="key-submit">✔ PAY</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- UPI PAYMENT RECEIPT & AUDIT MODAL -->
+  <div class="modal-backdrop hidden" id="modal-receipt-backdrop">
+    <div class="receipt-modal-card">
+      <div class="receipt-header" id="receipt-header-banner">
+        <div class="receipt-status-icon" id="receipt-status-icon">✔</div>
+        <div class="receipt-status-title" id="receipt-status-title">UPI Payment Successful</div>
+        <div class="receipt-status-time" id="receipt-status-time">16 Sep 2026, 12:00 PM</div>
+      </div>
+
+      <div class="receipt-body" id="receipt-body-content">
+        <!-- Dynamically injected receipt details -->
+      </div>
+
+      <div class="receipt-footer">
+        <button class="btn-receipt-action" id="btn-close-receipt">Done</button>
       </div>
     </div>
   </div>

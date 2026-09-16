@@ -1,20 +1,22 @@
 /**
- * FinTech QKD — Enterprise Quantum Financial Portal Frontend Controller
- * Complete Desktop Web Application with Live Optical Channel & Cryptographic Telemetry
+ * QuPay Web — Quantum-Resilient UPI Payment & Settlement Portal Frontend Controller
+ * Complete Desktop UPI Web Application with Interactive PIN Keypad, Laser Channel, and Crypto Telemetry
  */
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Global State
+  // Application State
   let userBalance = 125000.0;
   let isBalanceVisible = true;
-  let currentEngineLevel = 1; // 1: Classical, 2: Qiskit
+  let currentEngineLevel = 1; // 1: Classical BB84, 2: Qiskit 2.x Circuit
   let eveActive = false;
+  let enteredPin = "";
+  let contacts = [];
   let transactionsHistory = [];
   let currentFilter = "ALL";
   let latestSuccessfulTransaction = null;
-  let isProcessingPayment = false;
+  let isExecutingPayment = false;
 
-  // Audio Synthesizer (Web Audio API for realistic interaction feedback)
+  // Web Audio Synthesizer for Authentic UPI & Quantum Experience
   const audioCtx = (typeof window.AudioContext !== "undefined" || typeof window.webkitAudioContext !== "undefined")
     ? new (window.AudioContext || window.webkitAudioContext)()
     : null;
@@ -25,18 +27,29 @@ document.addEventListener("DOMContentLoaded", () => {
       if (audioCtx.state === "suspended") audioCtx.resume();
       const now = audioCtx.currentTime;
 
-      if (type === "coin") {
+      if (type === "key") {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = "sine";
-        osc.frequency.setValueAtTime(987.77, now); // B5
-        osc.frequency.exponentialRampToValueAtTime(1318.51, now + 0.12); // E6
-        gain.gain.setValueAtTime(0.12, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        osc.frequency.setValueAtTime(600, now);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start(now);
-        osc.stop(now + 0.15);
+        osc.stop(now + 0.05);
+      } else if (type === "coin") {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(987.77, now);
+        osc.frequency.exponentialRampToValueAtTime(1318.51, now + 0.12);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.14);
       } else if (type === "success") {
         [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
           const osc = audioCtx.createOscillator();
@@ -66,11 +79,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
     } catch (e) {
-      console.warn("Audio playback not supported or blocked by browser", e);
+      console.warn("Audio playback not supported", e);
     }
   }
 
-  // Toast Notification Helper
+  // Toast Helper
   const toastContainer = document.getElementById("toast-container");
   function showToast(message, type = "info") {
     const toast = document.createElement("div");
@@ -85,115 +98,164 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 4500);
   }
 
-  // DOM Elements
+  // Tab Switching
+  const navTabs = document.querySelectorAll(".nav-tab");
+  const tabPanes = {
+    "transfer-hub": document.getElementById("pane-transfer-hub"),
+    "quantum-channel": document.getElementById("pane-quantum-channel"),
+    "passbook": document.getElementById("pane-passbook"),
+    "my-qr": document.getElementById("pane-my-qr"),
+  };
+
+  function switchTab(tabId) {
+    navTabs.forEach((tab) => {
+      tab.classList.toggle("active", tab.getAttribute("data-tab") === tabId);
+    });
+    Object.keys(tabPanes).forEach((paneKey) => {
+      if (tabPanes[paneKey]) {
+        tabPanes[paneKey].classList.toggle("active", paneKey === tabId);
+      }
+    });
+  }
+
+  navTabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const tabId = tab.getAttribute("data-tab");
+      switchTab(tabId);
+    });
+  });
+
+  document.getElementById("link-view-all-passbook").addEventListener("click", () => {
+    switchTab("passbook");
+  });
+
+  // Header & KPI Elements
   const headerSecurityBadge = document.getElementById("header-security-badge");
   const headerSecurityText = document.getElementById("header-security-text");
   const currentEngineLabel = document.getElementById("current-engine-label");
   const btnEngineToggle = document.getElementById("btn-engine-toggle");
   const attackerEveSwitch = document.getElementById("attacker-eve-switch");
-  const attackerPill = document.getElementById("attacker-pill");
-  const eveStatusLabel = document.getElementById("eve-status-label");
-  const btnResetDemo = document.getElementById("btn-reset-demo");
+  const attackerBadge = document.getElementById("attacker-badge");
+  const eveStateText = document.getElementById("eve-state-text");
 
-  const kpiBalanceDisplay = document.getElementById("kpi-balance-display");
-  const kpiEyeToggle = document.getElementById("kpi-eye-toggle");
-  const kpiSettledAmount = document.getElementById("kpi-settled-amount");
-  const kpiSettledCount = document.getElementById("kpi-settled-count");
-  const kpiBlockedAmount = document.getElementById("kpi-blocked-amount");
-  const kpiBlockedCount = document.getElementById("kpi-blocked-count");
-  const kpiQberDisplay = document.getElementById("kpi-qber-display");
+  const mainBalanceDisplay = document.getElementById("main-balance-display");
+  const balanceEyeToggle = document.getElementById("balance-eye-toggle");
+  const btnRefreshBalance = document.getElementById("btn-refresh-balance");
+  const statSettledSum = document.getElementById("stat-settled-sum");
+  const statBlockedSum = document.getElementById("stat-blocked-sum");
+  const statTotalTxns = document.getElementById("stat-total-txns");
+  const statLatestQber = document.getElementById("stat-latest-qber");
 
-  const contactsPickerRow = document.getElementById("contacts-picker-row");
-  const inputPayeeName = document.getElementById("input-payee-name");
-  const inputPayeeUpi = document.getElementById("input-payee-upi");
-  const inputAmount = document.getElementById("input-amount");
-  const inputNote = document.getElementById("input-note");
-  const btnSubmitPayment = document.getElementById("btn-submit-payment");
+  // Transfer Form Elements
+  const contactsGrid = document.getElementById("contacts-grid");
+  const inpPayeeName = document.getElementById("inp-payee-name");
+  const inpPayeeUpi = document.getElementById("inp-payee-upi");
+  const inpAmount = document.getElementById("inp-amount");
+  const inpNote = document.getElementById("inp-note");
+  const btnPayAmountLabel = document.getElementById("btn-pay-amount-label");
+  const btnOpenPinModal = document.getElementById("btn-open-pin-modal");
 
-  const arenaEveProbe = document.getElementById("arena-eve-probe");
-  const fiberGlowCore = document.getElementById("fiber-glow-core");
-  const particlesLayer = document.getElementById("particles-layer");
-  const visualizerChannelMode = document.getElementById("visualizer-channel-mode");
-  const visualizerModeText = document.getElementById("visualizer-mode-text");
-  const breachAlertBox = document.getElementById("breach-alert-box");
-  const breachAlertMsg = document.getElementById("breach-alert-msg");
-  const arenaBobName = document.getElementById("arena-bob-name");
+  // Mini Laser & Activity Elements
+  const miniChannelBadge = document.getElementById("mini-channel-badge");
+  const miniLaserBeam = document.getElementById("mini-laser-beam");
+  const miniParticles = document.getElementById("mini-particles");
+  const miniEveSpy = document.getElementById("mini-eve-spy");
+  const miniNodeBobName = document.getElementById("mini-node-bob-name");
+  const mQberVal = document.getElementById("m-qber-val");
+  const mAesKeyPreview = document.getElementById("m-aes-key-preview");
+  const mHmacPreview = document.getElementById("m-hmac-preview");
+  const miniRecentItems = document.getElementById("mini-recent-items");
 
-  const telemetryQberVal = document.getElementById("telemetry-qber-val");
-  const gaugeBarFill = document.getElementById("gauge-bar-fill");
-  const specRawBits = document.getElementById("spec-raw-bits");
-  const specSiftedBits = document.getElementById("spec-sifted-bits");
-  const specErrors = document.getElementById("spec-errors");
-  const specKeyStatus = document.getElementById("spec-key-status");
-  const badgeKeyStatus = document.getElementById("badge-key-status");
+  // Full Visualizer Elements
+  const fullArenaStatusPill = document.getElementById("full-arena-status-pill");
+  const fullArenaStatusText = document.getElementById("full-arena-status-text");
+  const arenaStationEve = document.getElementById("arena-station-eve");
+  const eveDroneStatus = document.getElementById("eve-drone-status");
+  const fiberBeamCore = document.getElementById("fiber-beam-core");
+  const arenaParticlesLayer = document.getElementById("arena-particles-layer");
+  const channelBreachBanner = document.getElementById("channel-breach-banner");
+  const channelBreachDesc = document.getElementById("channel-breach-desc");
 
-  const proofAesKey = document.getElementById("proof-aes-key");
-  const proofGmacTag = document.getElementById("proof-gmac-tag");
-  const proofHmacTag = document.getElementById("proof-hmac-tag");
-  const proofCiphertext = document.getElementById("proof-ciphertext");
-  const btnTamperTest = document.getElementById("btn-tamper-test");
-
-  const passbookTbody = document.getElementById("passbook-tbody");
-  const countFilterAll = document.getElementById("count-filter-all");
-  const countFilterSettled = document.getElementById("count-filter-settled");
-  const countFilterBlocked = document.getElementById("count-filter-blocked");
-  const btnRefreshHistory = document.getElementById("btn-refresh-history");
-
-  const txnModalOverlay = document.getElementById("txn-modal-overlay");
-  const modalCloseBtn = document.getElementById("modal-close-btn");
-  const modalStatusIcon = document.getElementById("modal-status-icon");
-  const modalTitle = document.getElementById("modal-title");
-  const modalBodyContent = document.getElementById("modal-body-content");
-
-  // Step Indicators
-  const steps = [
-    document.getElementById("step-1"),
-    document.getElementById("step-2"),
-    document.getElementById("step-3"),
-    document.getElementById("step-4"),
-    document.getElementById("step-5"),
+  const flowSteps = [
+    document.getElementById("f-step-1"),
+    document.getElementById("f-step-2"),
+    document.getElementById("f-step-3"),
+    document.getElementById("f-step-4"),
+    document.getElementById("f-step-5"),
   ];
 
-  // PIN Inputs auto-tabbing
-  const pinBoxes = [
-    document.getElementById("pin-1"),
-    document.getElementById("pin-2"),
-    document.getElementById("pin-3"),
-    document.getElementById("pin-4"),
-  ];
+  const fullQberMeterVal = document.getElementById("full-qber-meter-val");
+  const fullQberFill = document.getElementById("full-qber-fill");
+  const badgeCryptoStatus = document.getElementById("badge-crypto-status");
+  const fullProofAesKey = document.getElementById("full-proof-aes-key");
+  const fullProofGmacTag = document.getElementById("full-proof-gmac-tag");
+  const fullProofHmacTag = document.getElementById("full-proof-hmac-tag");
+  const fullProofCiphertext = document.getElementById("full-proof-ciphertext");
+  const btnFullTamperTest = document.getElementById("btn-full-tamper-test");
 
-  pinBoxes.forEach((box, idx) => {
-    box.addEventListener("input", (e) => {
-      if (box.value && idx < pinBoxes.length - 1) {
-        pinBoxes[idx + 1].focus();
-      }
-    });
-    box.addEventListener("keydown", (e) => {
-      if (e.key === "Backspace" && !box.value && idx > 0) {
-        pinBoxes[idx - 1].focus();
-      }
+  // Passbook Elements
+  const upiPassbookTbody = document.getElementById("upi-passbook-tbody");
+  const passbookCountAll = document.getElementById("passbook-count-all");
+  const passbookCountSettled = document.getElementById("passbook-count-settled");
+  const passbookCountBlocked = document.getElementById("passbook-count-blocked");
+  const btnSyncPassbook = document.getElementById("btn-sync-passbook");
+
+  // PIN Modal Elements
+  const modalPinBackdrop = document.getElementById("modal-pin-backdrop");
+  const btnClosePinModal = document.getElementById("btn-close-pin-modal");
+  const pinModalPayeeName = document.getElementById("pin-modal-payee-name");
+  const pinModalPayeeUpi = document.getElementById("pin-modal-payee-upi");
+  const pinModalAmount = document.getElementById("pin-modal-amount");
+  const pinDots = [
+    document.getElementById("p-dot-1"),
+    document.getElementById("p-dot-2"),
+    document.getElementById("p-dot-3"),
+    document.getElementById("p-dot-4"),
+  ];
+  const keyClear = document.getElementById("key-clear");
+  const keySubmit = document.getElementById("key-submit");
+
+  // Receipt Modal Elements
+  const modalReceiptBackdrop = document.getElementById("modal-receipt-backdrop");
+  const receiptHeaderBanner = document.getElementById("receipt-header-banner");
+  const receiptStatusIcon = document.getElementById("receipt-status-icon");
+  const receiptStatusTitle = document.getElementById("receipt-status-title");
+  const receiptStatusTime = document.getElementById("receipt-status-time");
+  const receiptBodyContent = document.getElementById("receipt-body-content");
+  const btnCloseReceipt = document.getElementById("btn-close-receipt");
+
+  // Update Amount Label on Input
+  inpAmount.addEventListener("input", () => {
+    const val = parseFloat(inpAmount.value) || 0;
+    btnPayAmountLabel.textContent = val.toLocaleString("en-IN", { minimumFractionDigits: 2 });
+  });
+
+  // Preset Chips
+  document.querySelectorAll(".preset-chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const amt = parseInt(chip.getAttribute("data-amt"), 10);
+      const current = parseInt(inpAmount.value || 0, 10);
+      inpAmount.value = current + amt;
+      btnPayAmountLabel.textContent = (current + amt).toLocaleString("en-IN", { minimumFractionDigits: 2 });
+      playSound("key");
     });
   });
 
   // Balance Visibility Toggle
-  kpiEyeToggle.addEventListener("click", () => {
+  balanceEyeToggle.addEventListener("click", () => {
     isBalanceVisible = !isBalanceVisible;
     if (isBalanceVisible) {
-      kpiBalanceDisplay.textContent = `₹${userBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
-      kpiEyeToggle.textContent = "👁️";
+      mainBalanceDisplay.textContent = `₹${userBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+      balanceEyeToggle.textContent = "👁️";
     } else {
-      kpiBalanceDisplay.textContent = "₹••••••••";
-      kpiEyeToggle.textContent = "🙈";
+      mainBalanceDisplay.textContent = "₹••••••••";
+      balanceEyeToggle.textContent = "🙈";
     }
   });
 
-  // Amount Chips
-  document.querySelectorAll(".amount-chip").forEach((chip) => {
-    chip.addEventListener("click", () => {
-      const val = parseInt(chip.getAttribute("data-val"), 10);
-      const current = parseInt(inputAmount.value || 0, 10);
-      inputAmount.value = current + val;
-    });
+  btnRefreshBalance.addEventListener("click", () => {
+    fetchSecurityStatus();
+    showToast("UPI balance synchronized with Quantum Reserve Bank.", "info");
   });
 
   // Load Contacts
@@ -201,32 +263,43 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const res = await fetch("/api/contacts");
       const data = await res.json();
-      if (data.contacts && data.contacts.length > 0) {
-        contactsPickerRow.innerHTML = "";
-        data.contacts.forEach((contact, idx) => {
-          const pill = document.createElement("div");
-          pill.className = `contact-pill-item ${idx === 0 ? "selected" : ""}`;
-          pill.innerHTML = `<span class="contact-avatar">${contact.avatar}</span> <span>${contact.name}</span>`;
-          pill.addEventListener("click", () => {
-            document.querySelectorAll(".contact-pill-item").forEach((p) => p.classList.remove("selected"));
-            pill.classList.add("selected");
-            inputPayeeName.value = contact.name;
-            inputPayeeUpi.value = contact.upi;
-            arenaBobName.textContent = `${contact.name} (${contact.bank})`;
+      contacts = data.contacts || [];
+
+      if (contacts.length > 0) {
+        contactsGrid.innerHTML = "";
+        contacts.forEach((contact, idx) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = `contact-card-btn ${idx === 0 ? "selected" : ""}`;
+          btn.innerHTML = `
+            <span class="c-avatar">${contact.avatar}</span>
+            <div>
+              <div class="c-name">${contact.name}</div>
+              <div class="c-vpa font-mono">${contact.upi}</div>
+            </div>
+          `;
+          btn.addEventListener("click", () => {
+            document.querySelectorAll(".contact-card-btn").forEach((b) => b.classList.remove("selected"));
+            btn.classList.add("selected");
+            inpPayeeName.value = contact.name;
+            inpPayeeUpi.value = contact.upi;
+            miniNodeBobName.textContent = contact.name.split(" ")[0];
+            playSound("key");
           });
-          contactsPickerRow.appendChild(pill);
+          contactsGrid.appendChild(btn);
         });
-        // Default select first
-        inputPayeeName.value = data.contacts[0].name;
-        inputPayeeUpi.value = data.contacts[0].upi;
-        arenaBobName.textContent = `${data.contacts[0].name} (${data.contacts[0].bank})`;
+
+        // Set default recipient
+        inpPayeeName.value = contacts[0].name;
+        inpPayeeUpi.value = contacts[0].upi;
+        miniNodeBobName.textContent = contacts[0].name.split(" ")[0];
       }
     } catch (e) {
       console.error("Failed to load contacts:", e);
     }
   }
 
-  // Fetch Security Status & Telemetry
+  // Fetch Security Status & KPI
   async function fetchSecurityStatus() {
     try {
       const res = await fetch("/api/security/status");
@@ -236,14 +309,13 @@ document.addEventListener("DOMContentLoaded", () => {
       currentEngineLevel = data.sim_level;
 
       if (isBalanceVisible) {
-        kpiBalanceDisplay.textContent = `₹${userBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+        mainBalanceDisplay.textContent = `₹${userBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
       }
-      kpiSettledAmount.textContent = `₹${data.total_settled_amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
-      kpiSettledCount.textContent = data.total_settled_count;
-      kpiBlockedCount.textContent = data.total_blocked_count;
-      kpiQberDisplay.textContent = `${(data.latest_qber * 100).toFixed(2)}% QBER`;
+      statSettledSum.textContent = `₹${data.total_settled_amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+      statBlockedSum.textContent = `₹${(data.total_blocked_count * 1200).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+      statTotalTxns.textContent = data.total_settled_count + data.total_blocked_count;
+      statLatestQber.textContent = `${(data.latest_qber * 100).toFixed(2)}%`;
 
-      // Update Header & Controls
       attackerEveSwitch.checked = eveActive;
       updateEveUI(eveActive);
       updateEngineUI(currentEngineLevel);
@@ -256,21 +328,34 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateEveUI(isActive) {
     eveActive = isActive;
     if (isActive) {
-      attackerPill.classList.add("active");
-      eveStatusLabel.textContent = "ACTIVE (Compromised)";
-      headerSecurityBadge.className = "security-status-badge compromised";
-      headerSecurityText.textContent = "Quantum Channel: EVE ACTIVE (~25% QBER)";
-      arenaEveProbe.classList.add("active");
+      attackerBadge.classList.add("active");
+      eveStateText.textContent = "ACTIVE";
+      headerSecurityBadge.className = "security-indicator compromised";
+      headerSecurityText.textContent = "Channel: EVE ACTIVE (~25% QBER)";
+
+      miniChannelBadge.className = "badge-pill";
+      miniChannelBadge.textContent = "Eve Intercept Active";
+      miniChannelBadge.style.color = "#f87171";
+      miniEveSpy.classList.add("active");
+
+      arenaStationEve.classList.add("active");
+      eveDroneStatus.textContent = "ACTIVE (Tapping Optical Fiber 100%)";
     } else {
-      attackerPill.classList.remove("active");
-      eveStatusLabel.textContent = "OFF (Honest)";
-      headerSecurityBadge.className = "security-status-badge secure";
-      headerSecurityText.textContent = "Quantum Channel: SECURE (QBER: 0.00%)";
-      arenaEveProbe.classList.remove("active");
-      breachAlertBox.classList.add("hidden");
-      fiberGlowCore.classList.remove("breached");
-      visualizerChannelMode.className = "channel-mode-pill";
-      visualizerModeText.textContent = "Channel Ready";
+      attackerBadge.classList.remove("active");
+      eveStateText.textContent = "OFF";
+      headerSecurityBadge.className = "security-indicator secure";
+      headerSecurityText.textContent = "Channel: SECURE (QBER: 0.00%)";
+
+      miniChannelBadge.className = "badge-pill secure";
+      miniChannelBadge.textContent = "Honest Channel";
+      miniChannelBadge.style.color = "#34d399";
+      miniEveSpy.classList.remove("active");
+
+      arenaStationEve.classList.remove("active");
+      eveDroneStatus.textContent = "INACTIVE (Honest Channel)";
+      channelBreachBanner.classList.add("hidden");
+      fiberBeamCore.classList.remove("breached");
+      miniLaserBeam.classList.remove("breached");
     }
   }
 
@@ -286,14 +371,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Engine Switch Toggle
   btnEngineToggle.addEventListener("click", () => {
-    const nextLevel = currentEngineLevel === 1 ? 2 : 1;
-    updateEngineUI(nextLevel);
-    showToast(`Quantum Engine switched to: ${nextLevel === 2 ? 'Level 2: Qiskit 2.x Real Quantum Circuit' : 'Level 1: Classical Logic BB84'}`, "info");
+    const next = currentEngineLevel === 1 ? 2 : 1;
+    updateEngineUI(next);
+    showToast(`Quantum Engine switched to: ${next === 2 ? 'Qiskit 2.x Quantum Circuit Simulator' : 'Classical BB84 Logic'}`, "info");
+    playSound("key");
   });
 
-  // Eve Attacker Switch Change
+  // Eve Attacker Switch
   attackerEveSwitch.addEventListener("change", async (e) => {
     const enabled = e.target.checked;
     try {
@@ -305,114 +390,149 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
       updateEveUI(data.eve_enabled);
       if (data.eve_enabled) {
-        showToast("🚨 Eavesdropper (Eve) activated! Channel will experience ~25% QBER errors.", "error");
+        showToast("🚨 Eavesdropper (Eve) activated! Optical channel will experience ~25% QBER.", "error");
         playSound("alarm");
       } else {
-        showToast("Quantum Channel restored to Honest state (0.00% error rate).", "success");
+        showToast("Quantum channel restored to Honest state (0.00% error rate).", "success");
       }
     } catch (err) {
-      console.error("Eve toggle error:", err);
-      showToast("Failed to toggle attacker state", "error");
+      console.error("Eve toggle failed:", err);
     }
   });
 
-  // Reset Demo
-  btnResetDemo.addEventListener("click", () => {
-    window.location.reload();
+  // Open PIN Modal
+  btnOpenPinModal.addEventListener("click", () => {
+    const payee = inpPayeeName.value.trim();
+    const upi = inpPayeeUpi.value.trim();
+    const amt = parseFloat(inpAmount.value) || 0;
+
+    if (!payee || !upi) {
+      showToast("Please provide recipient name and valid UPI VPA.", "error");
+      return;
+    }
+    if (amt <= 0) {
+      showToast("Please enter a valid transfer amount.", "error");
+      return;
+    }
+    if (amt > userBalance) {
+      showToast("Insufficient balance in your QRB account.", "error");
+      return;
+    }
+
+    pinModalPayeeName.textContent = payee;
+    pinModalPayeeUpi.textContent = upi;
+    pinModalAmount.textContent = `₹${amt.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+    enteredPin = "";
+    updatePinDots();
+    modalPinBackdrop.classList.remove("hidden");
+    playSound("key");
   });
 
-  // Reset Pipeline Steps
-  function resetPipeline() {
-    steps.forEach((s) => (s.className = "step-card"));
-    particlesLayer.innerHTML = "";
-    fiberGlowCore.classList.remove("breached");
-    breachAlertBox.classList.add("hidden");
-    visualizerChannelMode.className = "channel-mode-pill";
-    visualizerModeText.textContent = "Executing Protocol...";
+  btnClosePinModal.addEventListener("click", () => {
+    modalPinBackdrop.classList.add("hidden");
+  });
+
+  // PIN Keypad Handling
+  function updatePinDots() {
+    pinDots.forEach((dot, idx) => {
+      dot.classList.toggle("filled", idx < enteredPin.length);
+    });
   }
 
-  // Spawn Visual Coins & Photons
-  function spawnPhotonStream() {
-    for (let i = 0; i < 8; i++) {
+  document.querySelectorAll(".num-key[data-digit]").forEach((key) => {
+    key.addEventListener("click", () => {
+      if (enteredPin.length < 4) {
+        enteredPin += key.getAttribute("data-digit");
+        updatePinDots();
+        playSound("key");
+      }
+    });
+  });
+
+  keyClear.addEventListener("click", () => {
+    enteredPin = "";
+    updatePinDots();
+    playSound("key");
+  });
+
+  keySubmit.addEventListener("click", () => {
+    if (enteredPin.length < 4) {
+      showToast("Please enter complete 4-digit UPI PIN (e.g. 1234)", "error");
+      return;
+    }
+    modalPinBackdrop.classList.add("hidden");
+    executePayment();
+  });
+
+  // Animation: Spawn flying coins & photons
+  function spawnTransferAnimations() {
+    // Photons
+    for (let i = 0; i < 6; i++) {
       setTimeout(() => {
-        if (!isProcessingPayment) return;
+        if (!isExecutingPayment) return;
         const photon = document.createElement("div");
         photon.className = "flying-photon";
-        particlesLayer.appendChild(photon);
-        setTimeout(() => photon.remove(), 1100);
-      }, i * 120);
+        arenaParticlesLayer.appendChild(photon);
+        setTimeout(() => photon.remove(), 1000);
+      }, i * 150);
     }
-  }
 
-  function spawnCoinsStream() {
-    for (let i = 0; i < 4; i++) {
+    // 3D Golden Coins
+    for (let i = 0; i < 3; i++) {
       setTimeout(() => {
-        if (!isProcessingPayment) return;
+        if (!isExecutingPayment) return;
         const coin = document.createElement("div");
         coin.className = "flying-coin";
         coin.textContent = "₹";
-        particlesLayer.appendChild(coin);
+        arenaParticlesLayer.appendChild(coin);
         playSound("coin");
         setTimeout(() => {
           if (!coin.classList.contains("frozen")) coin.remove();
         }, 1400);
-      }, i * 280);
+      }, i * 300);
     }
   }
 
-  // Freeze Coins on Eavesdrop Intercept
-  function freezeCoinsInAir() {
-    document.querySelectorAll(".flying-coin").forEach((coin) => {
-      coin.classList.add("frozen");
-    });
-    fiberGlowCore.classList.add("breached");
-    visualizerChannelMode.className = "channel-mode-pill breached";
-    visualizerModeText.textContent = "CHANNEL COMPROMISED";
+  function freezeChannelOnBreach() {
+    document.querySelectorAll(".flying-coin").forEach((c) => c.classList.add("frozen"));
+    fiberBeamCore.classList.add("breached");
+    miniLaserBeam.classList.add("breached");
+    fullArenaStatusPill.className = "channel-status-pill";
+    fullArenaStatusPill.style.background = "rgba(239, 68, 68, 0.2)";
+    fullArenaStatusPill.style.color = "#f87171";
+    fullArenaStatusText.textContent = "CHANNEL BREACH DETECTED";
   }
 
-  // Execute Payment Handler
-  btnSubmitPayment.addEventListener("click", async () => {
-    if (isProcessingPayment) return;
+  // Execute Quantum Payment
+  async function executePayment() {
+    if (isExecutingPayment) return;
+    isExecutingPayment = true;
 
-    const payeeName = inputPayeeName.value.trim();
-    const payeeUpi = inputPayeeUpi.value.trim();
-    const amount = parseFloat(inputAmount.value);
-    const note = inputNote.value.trim() || "UPI Transfer";
+    const payeeName = inpPayeeName.value.trim();
+    const payeeUpi = inpPayeeUpi.value.trim();
+    const amount = parseFloat(inpAmount.value) || 0;
+    const note = inpNote.value.trim() || "Quantum UPI Settlement";
 
-    if (!payeeName || !payeeUpi) {
-      showToast("Please enter a valid recipient name and UPI VPA.", "error");
-      return;
-    }
+    // Switch to visualizer tab to show the photon & coin stream live
+    switchTab("quantum-channel");
 
-    if (isNaN(amount) || amount <= 0) {
-      showToast("Please enter a valid transfer amount.", "error");
-      return;
-    }
+    // Reset Flow Steps
+    flowSteps.forEach((s) => (s.className = "flow-step"));
+    arenaParticlesLayer.innerHTML = "";
+    fiberBeamCore.classList.remove("breached");
+    channelBreachBanner.classList.add("hidden");
+    fullArenaStatusText.textContent = "Executing Quantum Protocol...";
 
-    if (amount > userBalance) {
-      showToast("Insufficient settlement balance for transfer.", "error");
-      return;
-    }
-
-    // Begin Animation & Protocol Execution
-    isProcessingPayment = true;
-    btnSubmitPayment.disabled = true;
-    btnSubmitPayment.style.opacity = "0.6";
-    resetPipeline();
-
-    // Step 1: Photon Prep
-    steps[0].classList.add("active");
-    spawnPhotonStream();
-    spawnCoinsStream();
+    // Step 1: Prep
+    flowSteps[0].classList.add("active");
+    spawnTransferAnimations();
 
     try {
-      // Step 2: Basis Sifting
       setTimeout(() => {
-        steps[0].className = "step-card success";
-        steps[1].classList.add("active");
+        flowSteps[0].className = "flow-step success";
+        flowSteps[1].classList.add("active");
       }, 400);
 
-      // Perform API Call
       const res = await fetch("/api/payment/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -431,116 +551,208 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
       const txn = data.transaction;
       const qkd = data.qkd;
+      const isSettled = txn.status === "SETTLED";
+      const qberVal = (qkd.qber * 100);
 
-      // Update Telemetry Specs
       setTimeout(() => {
-        steps[1].className = "step-card success";
-        steps[2].classList.add("active");
+        flowSteps[1].className = "flow-step success";
+        flowSteps[2].classList.add("active");
 
-        const qberVal = (qkd.qber * 100);
-        telemetryQberVal.textContent = `${qberVal.toFixed(2)}%`;
-        gaugeBarFill.style.width = `${Math.min(qberVal * 2, 100)}%`;
-        specRawBits.textContent = qkd.raw_bits;
-        specSiftedBits.textContent = qkd.sifted_bits;
-        specErrors.textContent = qkd.sample_errors;
+        // Telemetry Update
+        mQberVal.textContent = `${qberVal.toFixed(2)}%`;
+        fullQberMeterVal.textContent = `${qberVal.toFixed(2)}%`;
+        fullQberFill.style.width = `${Math.min(qberVal * 2, 100)}%`;
 
         if (qkd.is_aborted) {
-          // EAVESDROPPER CAUGHT: Protocol Abort
-          gaugeBarFill.classList.add("danger");
-          steps[2].className = "step-card failed";
-          steps[3].className = "step-card failed";
-          steps[4].className = "step-card failed";
+          // SECURITY BREACH: Eve Caught!
+          fullQberFill.classList.add("danger");
+          flowSteps[2].className = "flow-step failed";
+          flowSteps[3].className = "flow-step failed";
+          flowSteps[4].className = "flow-step failed";
 
-          specKeyStatus.textContent = "ABORTED (QBER > 11%)";
-          specKeyStatus.style.color = "var(--accent-crimson)";
-          badgeKeyStatus.textContent = "ABORTED";
-          badgeKeyStatus.style.background = "rgba(239, 68, 68, 0.2)";
-          badgeKeyStatus.style.color = "#f87171";
+          badgeCryptoStatus.textContent = "ABORTED (QBER > 11%)";
+          badgeCryptoStatus.style.background = "rgba(239, 68, 68, 0.2)";
+          badgeCryptoStatus.style.color = "#f87171";
 
-          proofAesKey.textContent = "[SUPPRESSED — KEY ABORTED]";
-          proofGmacTag.textContent = "[SUPPRESSED]";
-          proofHmacTag.textContent = txn.hmac_auth_tag;
-          proofCiphertext.textContent = "[PAYMENT BLOCKED — ZERO CIPHERTEXT TRANSMITTED]";
-          btnTamperTest.disabled = true;
+          fullProofAesKey.textContent = "[SUPPRESSED DUE TO SECURITY BREACH]";
+          fullProofGmacTag.textContent = "[SUPPRESSED]";
+          fullProofHmacTag.textContent = txn.hmac_auth_tag;
+          fullProofCiphertext.textContent = "[TRANSMISSION BLOCKED — ZERO FUNDS DEDUCTED]";
+          mAesKeyPreview.textContent = "[ABORTED]";
+          mHmacPreview.textContent = txn.hmac_auth_tag;
+          btnFullTamperTest.disabled = true;
 
-          freezeCoinsInAir();
-          breachAlertBox.classList.remove("hidden");
-          breachAlertMsg.innerHTML = `<strong>Security Breach Detected:</strong> Quantum Bit Error Rate (${qberVal.toFixed(2)}%) exceeded the 11.00% safety threshold. Eavesdropper active on channel. Protocol aborted immediately — <strong>₹${amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })} protected</strong>.`;
+          freezeChannelOnBreach();
+          channelBreachBanner.classList.remove("hidden");
+          channelBreachDesc.innerHTML = `Eavesdropper intercepted photons on the optical channel. Induced QBER spiked to <strong>${qberVal.toFixed(2)}%</strong> (exceeding 11.00% safety limit). Protocol aborted immediately — <strong>₹${amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })} protected</strong>.`;
 
           playSound("alarm");
-          showToast(`🚨 Eavesdropper detected — payment of ₹${amount.toLocaleString("en-IN")} blocked to protect your money.`, "error");
+          showToast(`🚨 Eavesdropper detected — UPI payment of ₹${amount.toLocaleString("en-IN")} blocked to protect your money.`, "error");
+          openReceiptModal(txn, false);
         } else {
-          // SECURE SETTLEMENT: Proceed with AES-256-GCM
-          gaugeBarFill.classList.remove("danger");
-          steps[2].className = "step-card success";
+          // SUCCESSFUL SETTLEMENT
+          fullQberFill.classList.remove("danger");
+          flowSteps[2].className = "flow-step success";
 
           setTimeout(() => {
-            steps[3].className = "step-card success";
-            steps[4].className = "step-card success";
+            flowSteps[3].className = "flow-step success";
+            flowSteps[4].className = "flow-step success";
 
-            specKeyStatus.textContent = "DERIVED (AES-256)";
-            specKeyStatus.style.color = "var(--accent-emerald)";
-            badgeKeyStatus.textContent = "SECURE KEY";
-            badgeKeyStatus.style.background = "rgba(16, 185, 129, 0.2)";
-            badgeKeyStatus.style.color = "#34d399";
+            badgeCryptoStatus.textContent = "SECURE (AES-256-GCM)";
+            badgeCryptoStatus.style.background = "rgba(16, 185, 129, 0.2)";
+            badgeCryptoStatus.style.color = "#34d399";
 
-            proofAesKey.textContent = txn.aes_key_preview || "--";
-            proofGmacTag.textContent = txn.gmac_tag || "--";
-            proofHmacTag.textContent = txn.hmac_auth_tag || "--";
-            proofCiphertext.textContent = txn.ciphertext || "--";
+            fullProofAesKey.textContent = txn.aes_key_preview || "--";
+            fullProofGmacTag.textContent = txn.gmac_tag || "--";
+            fullProofHmacTag.textContent = txn.hmac_auth_tag || "--";
+            fullProofCiphertext.textContent = txn.ciphertext || "--";
+            mAesKeyPreview.textContent = txn.aes_key_preview || "--";
+            mHmacPreview.textContent = txn.hmac_auth_tag || "--";
 
             latestSuccessfulTransaction = txn;
-            btnTamperTest.disabled = false;
+            btnFullTamperTest.disabled = false;
 
-            visualizerChannelMode.className = "channel-mode-pill";
-            visualizerModeText.textContent = "Settlement Complete";
+            fullArenaStatusPill.className = "channel-status-pill";
+            fullArenaStatusPill.style.background = "rgba(16, 185, 129, 0.15)";
+            fullArenaStatusPill.style.color = "#34d399";
+            fullArenaStatusText.textContent = "Settlement Complete";
 
             playSound("success");
-            showToast(`✔ ₹${amount.toLocaleString("en-IN")} successfully transferred to ${payeeName} (AES-256-GCM Verified)`, "success");
+            showToast(`✔ UPI Payment of ₹${amount.toLocaleString("en-IN")} sent to ${payeeName} (AES-256-GCM Verified)`, "success");
+            openReceiptModal(txn, true);
           }, 300);
         }
 
-        // Refresh Passbook and Balances
         fetchSecurityStatus();
         fetchHistory();
-
-        isProcessingPayment = false;
-        btnSubmitPayment.disabled = false;
-        btnSubmitPayment.style.opacity = "1";
+        isExecutingPayment = false;
       }, 700);
 
-    } catch (e) {
-      console.error("Payment execution error:", e);
-      showToast("Error processing payment transfer", "error");
-      isProcessingPayment = false;
-      btnSubmitPayment.disabled = false;
-      btnSubmitPayment.style.opacity = "1";
+    } catch (err) {
+      console.error("Payment execution failed:", err);
+      showToast("Error communicating with payment server", "error");
+      isExecutingPayment = false;
+    }
+  }
+
+  // Open Receipt Modal
+  function openReceiptModal(txn, isSuccess) {
+    if (isSuccess) {
+      receiptHeaderBanner.className = "receipt-header";
+      receiptStatusIcon.textContent = "✔";
+      receiptStatusTitle.textContent = "UPI Payment Successful";
+      receiptStatusTime.textContent = txn.timestamp;
+    } else {
+      receiptHeaderBanner.className = "receipt-header blocked";
+      receiptStatusIcon.textContent = "🚨";
+      receiptStatusTitle.textContent = "UPI Payment Blocked";
+      receiptStatusTime.textContent = txn.timestamp;
+    }
+
+    receiptBodyContent.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px;">
+        <span style="font-size: 0.85rem; color: #94a3b8;">Amount</span>
+        <span class="font-mono" style="font-size: 1.4rem; font-weight: 800; color: ${isSuccess ? '#00f2fe' : '#f87171'};">
+          ₹${txn.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+        </span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.82rem;">
+        <div>
+          <div style="color: #94a3b8;">Recipient (Payee)</div>
+          <div style="font-weight: 700; color: #fff;">${txn.payee_name}</div>
+          <div class="font-mono" style="font-size: 0.72rem; color: #64748b;">${txn.payee_upi}</div>
+        </div>
+        <div>
+          <div style="color: #94a3b8;">Sender (Payer)</div>
+          <div style="font-weight: 700; color: #fff;">${txn.payer_name}</div>
+          <div class="font-mono" style="font-size: 0.72rem; color: #64748b;">${txn.payer_upi}</div>
+        </div>
+      </div>
+
+      <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06); font-size: 0.75rem; display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: #94a3b8;">UPI Ref / UTR No:</span>
+          <span class="font-mono" style="color: #38bdf8; font-weight: 700;">${txn.txn_id}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: #94a3b8;">Quantum Bit Error Rate (QBER):</span>
+          <span class="font-mono" style="color: ${isSuccess ? '#34d399' : '#f87171'}; font-weight: 700;">${txn.qber_str}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: #94a3b8;">Quantum Engine:</span>
+          <span style="color: #cbd5e1;">${txn.engine} • 512 Qubits</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: #94a3b8;">GMAC Tag (128-Bit):</span>
+          <span class="font-mono" style="color: #cbd5e1;">${txn.gmac_tag ? txn.gmac_tag.slice(0, 16) + '...' : '[SUPPRESSED]'}</span>
+        </div>
+      </div>
+
+      ${txn.abort_reason ? `
+        <div style="padding: 10px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 8px; font-size: 0.76rem; color: #fca5a5;">
+          <strong>Security Diagnostic:</strong> ${txn.abort_reason}
+        </div>
+      ` : ''}
+    `;
+
+    modalReceiptBackdrop.classList.remove("hidden");
+  }
+
+  btnCloseReceipt.addEventListener("click", () => {
+    modalReceiptBackdrop.classList.add("hidden");
+  });
+
+  modalReceiptBackdrop.addEventListener("click", (e) => {
+    if (e.target === modalReceiptBackdrop) {
+      modalReceiptBackdrop.classList.add("hidden");
     }
   });
 
-  // Fetch Passbook History
+  // Fetch History & Update Passbook
   async function fetchHistory() {
     try {
       const res = await fetch("/api/transactions");
       const data = await res.json();
       transactionsHistory = data.transactions || [];
 
-      // Update Counts
-      const totalAll = transactionsHistory.length;
-      const totalSettled = transactionsHistory.filter((t) => t.status === "SETTLED").length;
-      const totalBlocked = transactionsHistory.filter((t) => t.status === "BLOCKED").length;
-
-      countFilterAll.textContent = totalAll;
-      countFilterSettled.textContent = totalSettled;
-      countFilterBlocked.textContent = totalBlocked;
+      passbookCountAll.textContent = transactionsHistory.length;
+      passbookCountSettled.textContent = transactionsHistory.filter((t) => t.status === "SETTLED").length;
+      passbookCountBlocked.textContent = transactionsHistory.filter((t) => t.status === "BLOCKED").length;
 
       renderPassbookTable();
+      renderMiniRecentFeed();
     } catch (e) {
       console.error("Failed to fetch history:", e);
     }
   }
 
-  // Render Table Rows with Filter
+  function renderMiniRecentFeed() {
+    if (transactionsHistory.length === 0) {
+      miniRecentItems.innerHTML = `<div class="empty-state-mini">No transactions yet. Send money to initiate BB84 key exchange.</div>`;
+      return;
+    }
+    miniRecentItems.innerHTML = "";
+    transactionsHistory.slice(0, 4).forEach((txn) => {
+      const isSettled = txn.status === "SETTLED";
+      const div = document.createElement("div");
+      div.className = "mini-txn-row";
+      div.innerHTML = `
+        <div>
+          <div style="font-weight: 700; color: #fff;">${txn.payee_name}</div>
+          <div style="font-size: 0.68rem; color: #64748b;">${txn.timestamp}</div>
+        </div>
+        <div style="text-align: right;">
+          <div class="font-mono" style="font-weight: 800; color: ${isSettled ? '#34d399' : '#f87171'};">
+            ${isSettled ? '+' : ''}₹${txn.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+          </div>
+          <div class="font-mono" style="font-size: 0.65rem; color: #94a3b8;">${txn.qber_str} QBER</div>
+        </div>
+      `;
+      miniRecentItems.appendChild(div);
+    });
+  }
+
   function renderPassbookTable() {
     const filtered = transactionsHistory.filter((t) => {
       if (currentFilter === "SETTLED") return t.status === "SETTLED";
@@ -549,15 +761,15 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     if (filtered.length === 0) {
-      passbookTbody.innerHTML = `
-        <tr class="empty-row">
-          <td colspan="10">No ${currentFilter === 'ALL' ? '' : currentFilter.toLowerCase()} transactions found.</td>
+      upiPassbookTbody.innerHTML = `
+        <tr class="empty-table-row">
+          <td colspan="10">No ${currentFilter === 'ALL' ? '' : currentFilter.toLowerCase()} transactions recorded.</td>
         </tr>
       `;
       return;
     }
 
-    passbookTbody.innerHTML = "";
+    upiPassbookTbody.innerHTML = "";
     filtered.forEach((txn) => {
       const isSettled = txn.status === "SETTLED";
       const tr = document.createElement("tr");
@@ -566,15 +778,15 @@ document.addEventListener("DOMContentLoaded", () => {
         <td style="color: #94a3b8; font-size: 0.78rem;">${txn.timestamp}</td>
         <td>
           <div style="font-weight: 600;">${txn.payee_name}</div>
-          <div class="font-mono" style="font-size: 0.7rem; color: #64748b;">${txn.payee_upi}</div>
+          <div class="font-mono" style="font-size: 0.68rem; color: #64748b;">${txn.payee_upi}</div>
         </td>
         <td>
           <div style="font-weight: 500;">${txn.payer_name}</div>
-          <div class="font-mono" style="font-size: 0.7rem; color: #64748b;">${txn.payer_upi}</div>
+          <div class="font-mono" style="font-size: 0.68rem; color: #64748b;">${txn.payer_upi}</div>
         </td>
         <td class="font-mono" style="font-weight: 700; font-size: 0.95rem;">₹${txn.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
         <td>
-          <span class="status-badge ${isSettled ? 'settled' : 'blocked'}">
+          <span class="status-tag ${isSettled ? 'settled' : 'blocked'}">
             ${isSettled ? '✔ SETTLED' : '🚨 BLOCKED'}
           </span>
         </td>
@@ -582,36 +794,37 @@ document.addEventListener("DOMContentLoaded", () => {
         <td style="font-size: 0.75rem; color: #cbd5e1;">${txn.engine}</td>
         <td class="font-mono" style="font-size: 0.7rem; color: #94a3b8;">${txn.gmac_tag ? txn.gmac_tag.slice(0, 12) + '...' : '--'}</td>
         <td>
-          <button class="btn-table-action" data-txnid="${txn.txn_id}">Inspect 🔍</button>
+          <button class="btn-inspect" data-txnid="${txn.txn_id}">Receipt 🔍</button>
         </td>
       `;
 
-      tr.querySelector(".btn-table-action").addEventListener("click", () => {
-        openTxnModal(txn);
+      tr.querySelector(".btn-inspect").addEventListener("click", () => {
+        openReceiptModal(txn, isSettled);
       });
 
-      passbookTbody.appendChild(tr);
+      upiPassbookTbody.appendChild(tr);
     });
   }
 
-  // Filter Pills Click
-  document.querySelectorAll(".filter-pill").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".filter-pill").forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-      currentFilter = btn.getAttribute("data-filter");
+  // Passbook Filters
+  document.querySelectorAll(".filter-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".filter-tab").forEach((t) => t.classList.remove("active"));
+      tab.classList.add("active");
+      currentFilter = tab.getAttribute("data-filter");
       renderPassbookTable();
+      playSound("key");
     });
   });
 
-  btnRefreshHistory.addEventListener("click", () => {
+  btnSyncPassbook.addEventListener("click", () => {
     fetchHistory();
     fetchSecurityStatus();
-    showToast("Ledger data synchronized.", "info");
+    showToast("Passbook statement refreshed.", "info");
   });
 
-  // Tamper Test Interactive Verification
-  btnTamperTest.addEventListener("click", () => {
+  // Tamper Test Verification
+  btnFullTamperTest.addEventListener("click", () => {
     if (!latestSuccessfulTransaction || !latestSuccessfulTransaction.ciphertext) {
       showToast("No active settled transaction available to tamper.", "error");
       return;
@@ -619,92 +832,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     playSound("alarm");
     alert(
-      `🛡️ AES-256-GCM Tamper-Proofing Verification Test:\n\n` +
+      `🛡️ AES-256-GCM AEAD Tamper-Proofing Test:\n\n` +
       `Original Ciphertext:\n${latestSuccessfulTransaction.ciphertext.slice(0, 48)}...\n\n` +
       `Simulated Modification: Injected 1-bit bitflip into ciphertext.\n\n` +
-      `Verification Result: GMAC Authentication Tag verification failed with MACMismatchError!\n` +
-      `Decryption was REJECTED immediately before processing payment payload.`
+      `Verification Result: GMAC Tag Verification failed (MACMismatchError)!\n` +
+      `The financial transaction was REJECTED immediately before decryption.`
     );
     showToast("GMAC Tag verification successfully caught simulated ciphertext tampering!", "success");
-  });
-
-  // Transaction Inspection Modal
-  function openTxnModal(txn) {
-    const isSettled = txn.status === "SETTLED";
-    modalStatusIcon.textContent = isSettled ? "✔" : "🚨";
-    modalTitle.textContent = `Transaction Audit: ${txn.txn_id}`;
-
-    modalBodyContent.innerHTML = `
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
-        <div class="spec-item">
-          <span class="spec-label">Settlement Status</span>
-          <span class="spec-val" style="color: ${isSettled ? '#34d399' : '#f87171'}; font-weight: 800;">
-            ${txn.status} (${isSettled ? 'Funds Transferred' : 'Zero Deductions'})
-          </span>
-        </div>
-        <div class="spec-item">
-          <span class="spec-label">Transfer Amount</span>
-          <span class="spec-val font-mono">₹${txn.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
-        </div>
-        <div class="spec-item">
-          <span class="spec-label">Sender (Alice)</span>
-          <span class="spec-val">${txn.payer_name} (${txn.payer_upi})</span>
-        </div>
-        <div class="spec-item">
-          <span class="spec-label">Payee (Bob)</span>
-          <span class="spec-val">${txn.payee_name} (${txn.payee_upi})</span>
-        </div>
-      </div>
-
-      <div class="crypto-proof-box" style="margin-top: 8px;">
-        <div class="proof-row">
-          <span class="proof-label">Quantum Simulation Engine:</span>
-          <div class="proof-code font-mono">${txn.engine} • 512 Photons</div>
-        </div>
-        <div class="proof-row">
-          <span class="proof-label">Quantum Bit Error Rate (QBER):</span>
-          <div class="proof-code font-mono" style="color: ${isSettled ? '#34d399' : '#f87171'}; font-weight: 700;">
-            ${txn.qber_str} (Threshold: 11.00%)
-          </div>
-        </div>
-        <div class="proof-row">
-          <span class="proof-label">Derived 256-Bit AES Key (Hex):</span>
-          <div class="proof-code font-mono">${txn.aes_key_preview || '[SUPPRESSED DUE TO SECURITY BREACH]'}</div>
-        </div>
-        <div class="proof-row">
-          <span class="proof-label">AES-256-GCM 128-Bit GMAC Tag:</span>
-          <div class="proof-code font-mono">${txn.gmac_tag || '[SUPPRESSED]'}</div>
-        </div>
-        <div class="proof-row">
-          <span class="proof-label">HMAC-SHA256 Classical Channel Signature:</span>
-          <div class="proof-code font-mono">${txn.hmac_auth_tag || '--'}</div>
-        </div>
-        <div class="proof-row">
-          <span class="proof-label">Payload Ciphertext:</span>
-          <div class="proof-code font-mono ciphertext-preview">${txn.ciphertext || '[TRANSMISSION ABORTED]'}</div>
-        </div>
-        ${txn.abort_reason ? `
-        <div class="proof-row" style="margin-top: 6px;">
-          <span class="proof-label" style="color: #f87171;">Abort Diagnostic:</span>
-          <div class="proof-code font-mono" style="color: #fca5a5; background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.4); white-space: normal;">
-            ${txn.abort_reason}
-          </div>
-        </div>
-        ` : ''}
-      </div>
-    `;
-
-    txnModalOverlay.classList.remove("hidden");
-  }
-
-  modalCloseBtn.addEventListener("click", () => {
-    txnModalOverlay.classList.add("hidden");
-  });
-
-  txnModalOverlay.addEventListener("click", (e) => {
-    if (e.target === txnModalOverlay) {
-      txnModalOverlay.classList.add("hidden");
-    }
   });
 
   // Initial Load
