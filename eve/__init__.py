@@ -1,7 +1,9 @@
 """
-Eve package for simulating quantum interception attacks against QKD channels.
+Eve Eavesdropper & Attack Simulation Package
+============================================
+Simulates adversarial attacks on both the quantum link and the classical transport.
 """
 
-from eve.eavesdropper import Eavesdropper, EveStats
+from .interceptor import Eavesdropper
 
-__all__ = ["Eavesdropper", "EveStats"]
+__all__ = ["Eavesdropper"]

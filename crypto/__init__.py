@@ -1,7 +1,19 @@
 """
-Crypto package providing AES-256-GCM symmetric encryption for financial data.
+Crypto Package: Authenticated AES-256-GCM Ciphers
+=================================================
+Provides military/banking-grade authenticated encryption with tamper detection.
 """
 
-from crypto.aes_gcm import AESGCMCipher, DecryptionError, EncryptedPayload
+from .aes_gcm import (
+    AES256GCMCipher,
+    EncryptedPayload,
+    TamperDetectedError,
+    derive_hkdf_key,
+)
 
-__all__ = ["AESGCMCipher", "DecryptionError", "EncryptedPayload"]
+__all__ = [
+    "AES256GCMCipher",
+    "EncryptedPayload",
+    "TamperDetectedError",
+    "derive_hkdf_key",
+]

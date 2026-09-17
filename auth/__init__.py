@@ -1,15 +1,17 @@
 """
-Auth package providing authenticated classical communications to prevent MITM attacks in QKD.
+Auth Package: Classical Channel Message Authentication
+======================================================
+Provides cryptographic integrity and origin authentication for public channel messages.
 """
 
-from auth.channel import (
-    AuthenticatedChannel,
-    AuthenticatedMessage,
-    ChannelAuthenticationError,
+from .hmac_auth import (
+    AuthenticatedPacket,
+    HMACAuthenticator,
+    AuthenticationError,
 )
 
 __all__ = [
-    "AuthenticatedChannel",
-    "AuthenticatedMessage",
-    "ChannelAuthenticationError",
+    "AuthenticatedPacket",
+    "HMACAuthenticator",
+    "AuthenticationError",
 ]

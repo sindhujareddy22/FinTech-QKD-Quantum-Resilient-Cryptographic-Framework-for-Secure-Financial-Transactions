@@ -1,137 +1,116 @@
 """
-Cryptographic module for AES-256-GCM authenticated encryption and decryption.
+AES-256-GCM Authenticated Encryption & Tamper Detection Module
+==============================================================
+Provides high-performance authenticated symmetric encryption according to NIST SP 800-38D.
 
-Why AES-256-GCM?
-- Post-Quantum Symmetric Security: Grover's algorithm provides a quadratic speedup
-  for searching symmetric keys. AES-128 is reduced to 64-bit security (vulnerable),
-  whereas AES-256 is reduced to 128-bit quantum security, which remains practically
-  unbreakable by any known quantum or classical computer.
-- Authenticated Encryption with Associated Data (AEAD):
-  Galois/Counter Mode (GCM) provides both confidentiality (via CTR mode) and
-  authenticity/integrity (via GMAC tag). Tampering with either the ciphertext
-  or the associated header data will immediately fail tag validation.
+Key Properties:
+- Confidentiality: 256-bit AES block cipher in Galois Counter Mode.
+- Authenticity & Integrity: 128-bit authentication tag guarantees that any modification
+  or corruption to ciphertext or associated data is immediately caught and rejected.
+- Nonce Uniqueness: 96-bit (12-byte) cryptographically secure pseudorandom nonce per encryption.
 """
 
+import os
 import base64
 from dataclasses import dataclass
-import json
-import os
-from typing import Optional, Tuple
-
-try:
-    from Crypto.Cipher import AES
-except ImportError:
-    from Cryptodome.Cipher import AES
+from typing import Optional, Dict, Any
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+from cryptography.hazmat.primitives import hashes
+from cryptography.exceptions import InvalidTag
 
 
-class DecryptionError(Exception):
-    """Raised when decryption or authentication tag validation fails."""
+class TamperDetectedError(Exception):
+    """Raised when AES-GCM tag verification fails, indicating malicious tampering in transit."""
     pass
 
 
 @dataclass
 class EncryptedPayload:
-    """
-    Structured envelope containing AES-256-GCM encrypted payload and metadata.
-    """
+    """Represents an encrypted transaction payload ready for transmission."""
     nonce_b64: str
     ciphertext_b64: str
-    tag_b64: str
-    associated_data: Optional[str] = None
+    associated_data_b64: Optional[str] = None
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "nonce": self.nonce_b64,
             "ciphertext": self.ciphertext_b64,
-            "tag": self.tag_b64,
-            "associated_data": self.associated_data,
+            "associated_data": self.associated_data_b64,
         }
 
-    def to_json(self) -> str:
-        return json.dumps(self.to_dict(), indent=2)
-
     @classmethod
-    def from_dict(cls, data: dict) -> "EncryptedPayload":
+    def from_dict(cls, data: Dict[str, Any]) -> "EncryptedPayload":
         return cls(
             nonce_b64=data["nonce"],
             ciphertext_b64=data["ciphertext"],
-            tag_b64=data["tag"],
-            associated_data=data.get("associated_data"),
+            associated_data_b64=data.get("associated_data"),
         )
 
 
-class AESGCMCipher:
+def derive_hkdf_key(ikm: bytes, salt: Optional[bytes] = None, info: bytes = b"fintech-qkd-settlement") -> bytes:
     """
-    AES-256-GCM cipher wrapper configured with a QKD-derived 256-bit symmetric key.
+    Derives a 256-bit symmetric key using HKDF-SHA256 (RFC 5869).
+    Useful for privacy amplification or combining QKD + PQC secrets.
     """
+    hkdf = HKDF(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt or b"\x00" * 32,
+        info=info,
+    )
+    return hkdf.derive(ikm)
 
-    def __init__(self, key: bytes):
-        """
-        Initialize the cipher with a 256-bit (32-byte) key.
-        
-        Args:
-            key: 32 bytes derived from QKD privacy amplification.
-        """
-        if not isinstance(key, bytes) or len(key) != 32:
-            raise ValueError(
-                f"AES-256 key must be exactly 32 bytes (256 bits). "
-                f"Received {len(key) if isinstance(key, bytes) else type(key)}."
-            )
-        self._key = key
 
-    def encrypt(self, plaintext: str, associated_data: Optional[str] = None) -> EncryptedPayload:
+class AES256GCMCipher:
+    """
+    AES-256-GCM authenticated cipher.
+    """
+    @staticmethod
+    def encrypt(
+        plaintext: bytes,
+        key: bytes,
+        associated_data: Optional[bytes] = None
+    ) -> EncryptedPayload:
         """
-        Encrypt a plaintext string using AES-256-GCM.
-        
-        Args:
-            plaintext: Data to encrypt (e.g., JSON transaction string).
-            associated_data: Optional unencrypted metadata to cryptographically authenticate.
-            
-        Returns:
-            EncryptedPayload with base64-encoded nonce, ciphertext, and tag.
+        Encrypts plaintext bytes with AES-256-GCM using the provided 256-bit key.
         """
-        # Generate a fresh, cryptographically secure 96-bit (12-byte) nonce
-        # (Recommended standard nonce size for AES-GCM)
+        if len(key) != 32:
+            raise ValueError(f"AES-256 requires exactly 32-byte key (received {len(key)} bytes).")
+
+        # Generate 12-byte (96-bit) fresh random nonce
         nonce = os.urandom(12)
-        cipher = AES.new(self._key, AES.MODE_GCM, nonce=nonce)
-
-        if associated_data:
-            cipher.update(associated_data.encode("utf-8"))
-
-        ciphertext, tag = cipher.encrypt_and_digest(plaintext.encode("utf-8"))
+        aesgcm = AESGCM(key)
+        ciphertext = aesgcm.encrypt(nonce, plaintext, associated_data)
 
         return EncryptedPayload(
-            nonce_b64=base64.b64encode(nonce).decode("ascii"),
-            ciphertext_b64=base64.b64encode(ciphertext).decode("ascii"),
-            tag_b64=base64.b64encode(tag).decode("ascii"),
-            associated_data=associated_data,
+            nonce_b64=base64.b64encode(nonce).decode('utf-8'),
+            ciphertext_b64=base64.b64encode(ciphertext).decode('utf-8'),
+            associated_data_b64=base64.b64encode(associated_data).decode('utf-8') if associated_data else None,
         )
 
-    def decrypt(self, payload: EncryptedPayload) -> str:
+    @staticmethod
+    def decrypt(
+        payload: EncryptedPayload,
+        key: bytes
+    ) -> bytes:
         """
-        Decrypt an EncryptedPayload and verify its authentication tag.
-        
-        Args:
-            payload: The EncryptedPayload containing ciphertext, nonce, and auth tag.
-            
-        Returns:
-            Decrypted plaintext string.
-            
-        Raises:
-            DecryptionError: If the tag is invalid or data has been tampered with.
+        Decrypts an AES-256-GCM payload.
+        Raises TamperDetectedError if the authentication tag is invalid.
         """
+        if len(key) != 32:
+            raise ValueError(f"AES-256 requires exactly 32-byte key (received {len(key)} bytes).")
+
+        nonce = base64.b64decode(payload.nonce_b64)
+        ciphertext = base64.b64decode(payload.ciphertext_b64)
+        associated_data = base64.b64decode(payload.associated_data_b64) if payload.associated_data_b64 else None
+
+        aesgcm = AESGCM(key)
         try:
-            nonce = base64.b64decode(payload.nonce_b64)
-            ciphertext = base64.b64decode(payload.ciphertext_b64)
-            tag = base64.b64decode(payload.tag_b64)
-
-            cipher = AES.new(self._key, AES.MODE_GCM, nonce=nonce)
-            if payload.associated_data:
-                cipher.update(payload.associated_data.encode("utf-8"))
-
-            decrypted_bytes = cipher.decrypt_and_verify(ciphertext, tag)
-            return decrypted_bytes.decode("utf-8")
-        except (ValueError, KeyError) as e:
-            raise DecryptionError(
-                f"AES-GCM integrity check failed: Data was tampered with or key is invalid. ({e})"
-            ) from e
+            plaintext = aesgcm.decrypt(nonce, ciphertext, associated_data)
+            return plaintext
+        except InvalidTag as exc:
+            raise TamperDetectedError(
+                "CRITICAL SECURITY ALERT: AES-256-GCM authentication tag verification failed! "
+                "The ciphertext was modified or corrupted in transit."
+            ) from exc

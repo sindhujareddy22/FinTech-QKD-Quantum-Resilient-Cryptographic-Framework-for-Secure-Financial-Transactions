@@ -1,16 +1,23 @@
 """
-Quantum Key Distribution (QKD) module implementing the BB84 protocol.
+QKD Package
+===========
+Quantum Key Distribution simulators (Level 1: Pure Python BB84, Level 2: Qiskit Circuits).
 """
 
-from qkd.protocol import Basis, Photon, QKDResult, privacy_amplification
-from qkd.bb84_classical import ClassicalBB84
-from qkd.bb84_qiskit import QiskitBB84
+from .level1 import (
+    BB84Alice,
+    BB84Bob,
+    Photon,
+    QKDResult,
+    run_bb84_exchange,
+    EavesdropDetectedError,
+)
 
 __all__ = [
-    "Basis",
+    "BB84Alice",
+    "BB84Bob",
     "Photon",
     "QKDResult",
-    "privacy_amplification",
-    "ClassicalBB84",
-    "QiskitBB84",
+    "run_bb84_exchange",
+    "EavesdropDetectedError",
 ]

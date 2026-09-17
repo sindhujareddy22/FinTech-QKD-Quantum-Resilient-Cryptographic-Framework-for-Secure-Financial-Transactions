@@ -1,15 +1,17 @@
 """
-Transactions package for generating synthetic financial transaction payloads.
+Transactions Package: ISO 20022 Interbank Settlement Batch Generator
+===================================================================
+Generates synthetic high-value financial settlement batches.
 """
 
-from transactions.generator import (
-    FinancialTransaction,
-    generate_transaction,
-    generate_transaction_batch,
+from .generator import (
+    SettlementBatch,
+    SettlementTransaction,
+    generate_synthetic_settlement_batch,
 )
 
 __all__ = [
-    "FinancialTransaction",
-    "generate_transaction",
-    "generate_transaction_batch",
+    "SettlementBatch",
+    "SettlementTransaction",
+    "generate_synthetic_settlement_batch",
 ]

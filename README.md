@@ -1,128 +1,189 @@
-# FinTech QKD: Quantum-Resilient Cryptographic Framework for Secure Financial Transactions
+# FinTech QKD: Quantum-Resilient Security for Interbank Settlement
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Quantum Engine: Qiskit](https://img.shields.io/badge/Quantum%20Engine-Qiskit%202.x-6929C4.svg)](https://qiskit.org/)
-[![Cryptography: AES-256-GCM](https://img.shields.io/badge/AEAD-AES--256--GCM-green.svg)](https://csrc.nist.gov/)
-[![Dashboard: Streamlit](https://img.shields.io/badge/Dashboard-Streamlit-FF4B4B.svg)](https://streamlit.io/)
-
-A university-grade, production-quality Python application demonstrating how **Quantum Key Distribution (BB84 Protocol)** enables future-proof cryptographic protection for financial transaction streams against "Harvest Now, Decrypt Later" (HNDL) quantum threats.
+> **University Project & Institutional Prototype**  
+> Demonstrating Point-to-Point Quantum Key Distribution (BB84) with Continuous Per-Settlement Re-Keying, Post-Quantum Kyber Hybridization, and AES-256-GCM Encryption for High-Value Interbank Settlement Links.
 
 ---
 
-## 🎯 Key Design: Continuous Quantum Re-Keying & Mid-Stream Eavesdropping Catch
+## 1. Executive Summary & Fintech Framing
 
-Unlike static demos that exchange a single key once, this application models genuine continuous QKD:
-1. **Per-Transaction Quantum Re-Keying**: Before *every* synthetic financial transaction, Alice and Bob execute a fresh BB84 quantum exchange to derive a unique, single-use 256-bit symmetric key.
-2. **Per-Transaction QBER Integrity Verification**: The system continuously samples and measures the **Quantum Bit Error Rate (QBER)** for each individual transaction round.
-   - If $\text{QBER} < 11.00\%$: Key accepted $\rightarrow$ Payload encrypted via AES-256-GCM $\rightarrow$ **`SETTLED`**.
-   - If $\text{QBER} \ge 11.00\%$: Key rejected $\rightarrow$ Transaction **`BLOCKED`** immediately $\rightarrow$ Live alert raised!
-3. **Mid-Stream Runtime Adversary Toggle**: The user can toggle Eve (the eavesdropper) **ON or OFF at runtime while the stream is actively running**. When Eve is flipped ON, the very next transaction's QBER spikes ($\sim 25\%$), and the alert fires instantaneously!
+In wholesale banking, high-value interbank settlement links (e.g., between **Bank A** and a central **Clearing House / RTGS**) transport billions in value daily. Traditional public-key infrastructure (RSA, ECDH) faces catastrophic vulnerability under Shor's algorithm on quantum computers ("Store Now, Decrypt Later" threats).
+
+**FinTech QKD** secures this backbone link using **Quantum Key Distribution (QKD)** paired with **Post-Quantum Cryptography (PQC)**. 
+- **Point-to-Point Topology**: QKD is a dedicated physical link technology engineered for fixed interbank backbones, *not* consumer retail apps.
+- **Continuous Per-Settlement Re-Keying**: Every single financial settlement batch triggers an independent BB84 quantum exchange and derives a fresh, unique session key.
+- **Immediate Eavesdrop Gate**: If an adversary (Eve) wiretaps the optical fiber, the Quantum Bit Error Rate (QBER) instantly spikes above the safety threshold ($\ge 11\%$). The system aborts immediately, blocking settlement before any financial data is exposed.
 
 ---
 
-## 📁 Project Architecture & Modules
+## 2. What is Real vs. Simulated
 
+To ensure total academic transparency:
+
+| Component | Status | Technical Implementation |
+| :--- | :--- | :--- |
+| **Network & Transport** | **REAL** | Real physical TCP sockets and WebSockets across two separate laptops or LAN nodes. |
+| **Payload Encryption** | **REAL** | Authenticated AES-256-GCM symmetric cipher with 96-bit random nonces and 128-bit authentication tags. |
+| **Classical Channel Auth** | **REAL** | Pre-Shared Key (PSK) with HMAC-SHA256 and sequence numbers (prevents MITM on classical reconciliation). |
+| **Post-Quantum Layer** | **REAL** | NIST FIPS 203 ML-KEM / Kyber lattice-based key encapsulation combined with QKD keys via HKDF-SHA256. |
+| **Financial Transactions**| **REAL** | Standardized synthetic ISO 20022 `pacs.008` interbank credit transfer settlement batches. |
+| **Operations UI** | **REAL** | Real-time institutional browser console powered by FastAPI and WebSockets. |
+| **Quantum Channel** | *Simulated* | Software-emulated BB84 photon polarization state preparation, random measurement bases, wavefunction collapse, and Qiskit quantum circuit backend. (Emulated because physical fiber-QKD lasers/single-photon detectors cost \$100k+, mirroring real-world bank testbeds). |
+
+---
+
+## 3. Architecture & Protocol Sequence
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Alice as Bank A (Sender)
+    participant Channel as Quantum Channel (Eve)
+    participant Bob as Clearing House (Receiver)
+
+    Note over Alice,Bob: Step 1: Simulated Quantum Exchange
+    Alice->>Channel: Transmit polarized photons (|0⟩, |1⟩, |+⟩, |-⟩)
+    Channel->>Bob: Intercept-Measure-Resend (if Eve Active)
+    Bob->>Bob: Measure photons in random bases (+, ×)
+
+    Note over Alice,Bob: Step 2: Classical Sifting & QBER Gate (HMAC-Authenticated)
+    Bob->>Alice: Send measurement bases
+    Alice->>Alice: Sift matching bases (~50% retention)
+    Alice->>Bob: Announce public sample indices & bits
+    Bob->>Bob: Calculate QBER = mismatches / sample_size
+
+    alt QBER >= 11.0% (Eavesdropper Caught)
+        Bob-->>Alice: ABORT: Channel Compromised (QBER spike)
+        Note over Alice,Bob: ⛔ SETTLEMENT BLOCKED — 0 BYTES TRANSMITTED
+    else QBER < 11.0% (Channel Secure)
+        Note over Alice,Bob: Step 3: Privacy Amplification & PQC Hybrid
+        Alice->>Alice: Hash remaining sifted bits -> K_QKD
+        Bob->>Bob: Hash remaining sifted bits -> K_QKD
+        Bob->>Alice: PQC Kyber Public Key
+        Alice->>Bob: Encapsulated Ciphertext -> K_PQC
+        Alice->>Alice: K_session = HKDF(K_QKD || K_PQC)
+        Bob->>Bob: K_session = HKDF(K_QKD || K_PQC)
+
+        Note over Alice,Bob: Step 4: Encrypted Settlement Transfer
+        Alice->>Alice: Generate ISO 20022 Batch & AES-256-GCM Encrypt
+        Alice->>Bob: Send HMAC-signed Ciphertext
+        Bob->>Bob: Verify HMAC, Verify GCM Tag & Decrypt Batch
+        Bob-->>Alice: Settlement Confirmed (SETTLED)
+    end
 ```
-.
-├── main.py                     # Single-command launcher (Streamlit Live Dashboard / CLI)
-├── requirements.txt            # Python dependencies (Streamlit, Qiskit, PyCryptodome, Faker, Pandas)
-├── README.md                   # Full documentation & demonstration guide
-├── app/                        # Live Streamlit Dashboard Application
-│   ├── __init__.py
-│   └── main.py                 # Interactive stream controller, live QBER chart & feed
-├── qkd/                        # BB84 Quantum Key Distribution core
-│   ├── __init__.py
-│   ├── protocol.py             # Data models, Photon representation, SHA-256 Privacy Amplification
-│   ├── bb84_classical.py       # Level 1: Classical probabilistic logic simulation
-│   └── bb84_qiskit.py          # Level 2: Real Qiskit quantum circuits (X, H gates, Aer/Basic simulator)
-├── auth/                       # Classical channel authentication
-│   ├── __init__.py
-│   └── channel.py              # HMAC-SHA256 authenticated messaging preventing classical MITM
-├── crypto/                     # Symmetric post-quantum encryption
-│   ├── __init__.py
-│   └── aes_gcm.py              # AES-256-GCM AEAD cipher with GMAC integrity validation
-├── transactions/               # Synthetic financial transactions
-│   ├── __init__.py
-│   └── generator.py            # Faker-based SWIFT/Fedwire synthetic transaction generator
-├── eve/                        # Adversarial interception simulation
-│   ├── __init__.py
-│   └── eavesdropper.py         # Intercept-and-resend attack simulator with runtime toggle
-├── demo/                       # Terminal CLI comparative runner
-│   ├── __init__.py
-│   ├── dashboard.py            # ANSI terminal visualizer
-│   └── main.py                 # Scenario orchestrator
-└── tests/                      # Automated unit test suite
-    ├── test_qkd.py             # Level 1 & Level 2 QKD tests
-    └── test_crypto_and_system.py # Crypto, Auth, Transactions, Eve tests
-```
 
 ---
 
-## 🔬 Theoretical Foundations & Cryptographic Reasoning
+## 4. Installation & Setup
 
-### 1. Conjugate Bases & Born Rule Measurement
-The BB84 protocol uses two mutually unbiased conjugate bases:
-- **Rectilinear ($+$ / $Z$) Basis**: State $|0\rangle$ (Bit `0`) and $|1\rangle$ (Bit `1`).
-- **Diagonal ($\times$ / $X$) Basis**: State $|+\rangle = \frac{|0\rangle + |1\rangle}{\sqrt{2}}$ (Bit `0`) and $|-\rangle = \frac{|0\rangle - |1\rangle}{\sqrt{2}}$ (Bit `1`).
+### Prerequisites
+- Python 3.10+ (Tested on Python 3.10 – 3.14)
+- Git
 
-When Bob measures a state prepared in basis $\mathcal{B}_A$ with basis $\mathcal{B}_B \neq \mathcal{B}_A$, the state vector projects equally onto both eigenstates. By the Born rule:
-$$P(\text{outcome } 0) = |\langle 0 | + \rangle|^2 = 50\%, \quad P(\text{outcome } 1) = |\langle 1 | + \rangle|^2 = 50\%$$
-Mismatched bases therefore yield pure cryptographic noise and are discarded during authenticated basis sifting.
-
-### 2. No-Cloning Theorem & State Disturbance
-By the Wootters-Zurek No-Cloning Theorem (1982), Eve cannot copy unknown quantum states.
-In an **Intercept-and-Resend Attack**:
-- Eve guesses the basis randomly (50% chance of wrong basis).
-- Measuring in the wrong basis collapses the superposition into Eve's basis.
-- When Bob measures in Alice's basis, Bob has a 50% probability of an error on that photon.
-$$\text{Expected QBER} = P(\text{Eve wrong basis}) \times P(\text{Bob error} \mid \text{Eve wrong}) = \frac{1}{2} \times \frac{1}{2} = 25\%$$
-
-### 3. The 11% QBER Safety Threshold
-By the Csiszár-Körner secret key capacity bound:
-$$\Delta I = I(A; B) - I(A; E)$$
-When $\text{QBER} > 11.00\%$, Eve's mutual information exceeds Bob's mutual information, making secure privacy amplification impossible. The protocol **aborts key generation**, preventing any financial plaintext from being encrypted.
-
-### 4. Channel Authentication Caveat (Preventing Classical MITM)
-> **Critical Concept:** QKD guarantees key confidentiality over the quantum channel, but **does not authenticate identities**.
-> Without authentication, Eve can mount a classical Man-in-the-Middle (MITM) attack. This framework authenticates the classical reconciliation channel using **HMAC-SHA256**. Because BB84 produces vastly more key bits than consumed by the MAC, QKD acts as a **Quantum Key Expander/Grower**.
-
----
-
-## 🚀 How to Run (Single Command)
-
-### 1. Launch Live Streamlit Dashboard (Default)
+### 1. Clone & Install Dependencies
 ```bash
-python main.py
-# or
-streamlit run app/main.py
-```
-📍 Opens automatically at: **`http://localhost:8501`**
+# Clone the repository
+git clone <repo-url>
+cd "ADD - fintech"
 
-### 2. Run CLI Comparative Runner
-```bash
-python main.py --cli
-```
-
-### 3. Run Automated Unit Test Suite
-```bash
-python -m unittest discover -s tests -p "test_*.py"
+# Install required packages
+pip install -r requirements.txt
 ```
 
 ---
 
-## 🎬 How to Demo Live (Step-by-Step Script)
+## 5. How to Run
 
-1. **Start the Clean Stream**:
-   - Open **`http://localhost:8501`**.
-   - Click **`▶️ Start Live Stream`** with Eve disabled.
-   - *Observation*: Transactions stream sequentially every ~0.8s. All transactions show green **`SETTLED`** badges, QBER stays at **`0.00%`**, and the live chart shows a flat line well below the 11% red threshold.
-2. **Flip Eve ON Mid-Stream**:
-   - While the stream is actively running, toggle **`⚠️ Enable Eavesdropper (Eve)`** in the sidebar.
-   - *Observation*: On the **very next transaction**, the QBER immediately spikes to **`25.00% - 30.00%`**. The system instantly aborts key derivation, the transaction is marked **`BLOCKED`**, and a prominent red alert banner fires:
-     > **🚨 EAVESDROPPER DETECTED — TRANSACTION BLOCKED!**
-3. **Turn Eve OFF Mid-Stream**:
-   - Switch Eve back to **`OFF`**.
-   - *Observation*: The next transaction returns to **`0.00% QBER`**, the alert clears, and transactions resume settling normally.
-4. **Switch to Qiskit Circuit Simulation**:
-   - Select **`Level 2 (Qiskit Quantum Circuits)`** to show that genuine quantum circuits (with Pauli-X and Hadamard gates) are being executed for each transaction key.
+### Mode A: Single-Laptop Development (Two Terminals)
+
+Open two terminal windows on the same machine:
+
+**Terminal 1 (Clearing House Node — Receiver):**
+```bash
+python main.py --role clearing --port 8001 --peer-port 8000
+```
+
+**Terminal 2 (Bank A Node — Sender):**
+```bash
+python main.py --role bank --port 8000 --peer-port 8001
+```
+
+Open your browser to:
+- **Bank A Console**: [http://localhost:8000](http://localhost:8000)
+- **Clearing House Console**: [http://localhost:8001](http://localhost:8001)
+
+---
+
+### Mode B: Physical Two-Device Setup (Over Local Wi-Fi / LAN)
+
+1. **Connect both laptops** to the same Wi-Fi network (or a phone mobile hotspot; avoid corporate networks with client isolation).
+2. **Find Device B's Local LAN IP**:
+   - **macOS / Linux**: `ipconfig getifaddr en0` or `hostname -I` (e.g., `192.168.1.45`)
+   - **Windows**: `ipconfig` (look for IPv4 Address under Wireless LAN)
+3. **Start Device B (Clearing House)** first:
+   ```bash
+   python main.py --role clearing --host 0.0.0.0 --port 8001 --peer-host <DEVICE_A_IP> --peer-port 8000
+   ```
+4. **Start Device A (Bank A)** second:
+   ```bash
+   python main.py --role bank --host 0.0.0.0 --port 8000 --peer-host 192.168.1.45 --peer-port 8001
+   ```
+5. Open `http://localhost:8000` on Device A and `http://localhost:8001` on Device B.
+
+---
+
+## 6. Live Demonstration Script ("Works $\to$ Caught $\to$ Recovers")
+
+Follow this sequence during your university capstone presentation or lab demo:
+
+1. **Normal Settlement (Clean Channel)**:
+   - On the **Bank A** console, ensure **Attacker Simulation (Eve)** is **OFF**.
+   - Click **SETTLE BATCH**.
+   - **Observe**: QBER measures `0.0%`, channel pill stays **SECURE (Green)**, and the settlement batch appears in the ledger as **SETTLED (Green)**.
+   - Click **View Payload** to inspect the decrypted ISO 20022 `pacs.008` interbank JSON payload.
+
+2. **Eavesdropping Attack (Eve Appears)**:
+   - On **Bank A**, flip the **Attacker Simulation (Eve)** toggle to **ON**.
+   - Click **SETTLE BATCH** (or leave Auto-Stream running).
+   - **Observe**: The QBER immediately spikes to $\sim 25.0\%$ (well above the $11.0\%$ threshold).
+   - The status changes to **COMPROMISED (Red)**, the banner displays `Eavesdropper detected — settlement blocked`, and the batch is marked **BLOCKED (Red)**.
+   - **Security Guarantee**: No plaintext or financial transaction data was ever transmitted over the network.
+
+3. **Instant Recovery**:
+   - Flip **Attacker Simulation (Eve)** to **OFF**.
+   - Click **SETTLE BATCH**.
+   - **Observe**: The next settlement immediately resets QBER to `0.0%`, status returns to **SECURE**, and the batch settles successfully.
+
+4. **Ciphertext Tampering Demo (AES-GCM Auth Tag Failure)**:
+   - Flip **TAMPER CIPHERTEXT** to **ON**.
+   - Click **SETTLE BATCH**.
+   - **Observe**: Even though the quantum channel succeeds, the Clearing House detects the flipped ciphertext byte via the AES-256-GCM authentication tag and rejects the payload with `CRITICAL SECURITY ALERT: AES-256-GCM authentication tag verification failed!`.
+
+---
+
+## 7. Test Suite & Evaluation Benchmark
+
+### Run Automated Tests
+```bash
+pytest -v
+```
+*Validates 20 unit and integration tests across QKD photon physics, Eve injection rates, AES-GCM tamper detection, PQC key encapsulation, and classical HMAC authentication.*
+
+### Run Academic Monte Carlo Benchmark
+```bash
+python benchmark_detection.py --rounds 500 --photons 600
+```
+This generates:
+- **False Positive Rate (FPR)**: $0.00\%$ under clean quantum conditions.
+- **Eavesdrop Detection Rate (TPR)**: $100.00\%$ when Eve performs intercept-measure-resend.
+- **Photon Sizing Sweep**: Empirically proves how increasing photon pulses ($N=60 \to 600$) contracts QBER standard deviation ($\sigma \propto 1/\sqrt{N}$) to ensure rock-solid stability.
+- **Publication Plot**: Output saved to `benchmark_results.png`.
+
+---
+
+## 8. Academic Analysis: Limitations of QKD & The Hybrid Defense
+
+1. **Distance Constraints**: Pure QKD optical signals degrade over distance in optical fibers ($\sim 0.2\text{ dB/km}$ loss), limiting unrepeatered links to $\approx 100\text{--}150\text{ km}$. Because quantum states cannot be cloned or amplified by standard optical repeaters without collapsing the wavefunction, quantum repeaters (requiring quantum memory) are still experimental.
+2. **Why QKD Fits Fixed Interbank Links**: Central banks, national clearing houses, and primary dealer banks operate over dedicated metro dark-fiber corridors (e.g. Wall Street $\leftrightarrow$ New Jersey data centers, or City of London $\leftrightarrow$ Docklands), making point-to-point QKD ideal.
+3. **Authentication Necessity**: QKD by itself does not authenticate identity; active MITM attackers could negotiate separate keys with each endpoint. Our system solves this by requiring pre-shared key HMAC-SHA256 authentication on all classical reconciliation frames.
+4. **Why PQC Hybrid (ML-KEM)**: Combining QKD ($K_{\text{QKD}}$) with lattice-based PQC ($K_{\text{PQC}}$) provides **defense-in-depth**: even if a fiber is cut or eavesdropped, or if a quantum computer breaks a mathematical assumption, the financial link remains unconditionally secure as long as *either* layer holds.

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinTech QKD Institutional Ops Console</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="console-container">
+        
+        <!-- REGION 1: HEADER -->
+        <header class="ops-header">
+            <div class="node-identity">
+                <span class="system-tag">INTERBANK SETTLEMENT LINK &bull; QKD LAYER</span>
+                <h1 id="node-title">NODE INITIALIZING...</h1>
+            </div>
+            <div class="network-status">
+                <div class="peer-info">
+                    <span class="label">PEER LINK:</span>
+                    <span id="peer-address">127.0.0.1:8001</span>
+                </div>
+                <div class="peer-badge" id="peer-badge">
+                    <span class="dot" id="peer-dot"></span>
+                    <span id="peer-status-text">DISCONNECTED</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- SECURITY ALERT BANNER -->
+        <div class="alert-banner hidden" id="alert-banner">
+            <span class="alert-icon">&#x26A0;</span>
+            <span id="alert-text">Eavesdropper detected — settlement blocked</span>
+        </div>
+
+        <!-- REGION 2: CHANNEL STATUS (MOST PROMINENT) -->
+        <section class="channel-status-card" id="channel-card">
+            <div class="status-top">
+                <div class="status-main">
+                    <span class="sub-label">QUANTUM CHANNEL STATE</span>
+                    <div class="status-state-pill secure" id="channel-state-pill">SECURE</div>
+                </div>
+                <div class="qber-metric">
+                    <span class="sub-label">MEASURED QBER (LATEST)</span>
+                    <div class="qber-value" id="qber-display">0.0%</div>
+                </div>
+            </div>
+
+            <!-- QBER Bar with 11% Abort Threshold Marker -->
+            <div class="qber-bar-container">
+                <div class="qber-bar-track">
+                    <div class="qber-bar-fill" id="qber-bar-fill" style="width: 0%;"></div>
+                    <div class="qber-threshold-marker" style="left: 11%;">
+                        <span class="marker-line"></span>
+                        <span class="marker-label">THRESHOLD: 11.0%</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- REGION 3: CONTROLS (EXACTLY TWO MAIN WORKFLOWS + ADVANCED TOGGLE) -->
+        <section class="controls-panel">
+            <div class="control-group">
+                <button class="btn btn-primary" id="btn-settle" onclick="triggerSettle()">
+                    SETTLE BATCH
+                </button>
+                <button class="btn btn-secondary" id="btn-autostream" onclick="toggleAutoStream()">
+                    AUTO-STREAM: OFF
+                </button>
+            </div>
+
+            <div class="control-group attack-controls">
+                <label class="toggle-control">
+                    <input type="checkbox" id="toggle-eve" onchange="toggleEve(this.checked)">
+                    <span class="toggle-track"></span>
+                    <span class="toggle-label">ATTACKER SIMULATION (EVE)</span>
+                </label>
+
+                <label class="toggle-control tamper-toggle">
+                    <input type="checkbox" id="toggle-tamper" onchange="toggleTamper(this.checked)">
+                    <span class="toggle-track"></span>
+                    <span class="toggle-label">TAMPER CIPHERTEXT (GCM TEST)</span>
+                </label>
+            </div>
+        </section>
+
+        <!-- REGION 4: SETTLEMENT LOG -->
+        <section class="log-section">
+            <div class="log-header">
+                <div class="log-title-group">
+                    <h2>SETTLEMENT LEDGER</h2>
+                    <span class="log-subtitle">Real-time ISO 20022 Interbank Batches</span>
+                </div>
+                <div class="counter-stats">
+                    <div class="stat-pill">TOTAL: <strong id="stat-total">0</strong></div>
+                    <div class="stat-pill settled">SETTLED: <strong id="stat-settled">0</strong></div>
+                    <div class="stat-pill blocked">BLOCKED: <strong id="stat-blocked">0</strong></div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="settlement-table">
+                    <thead>
+                        <tr>
+                            <th>TIME</th>
+                            <th>BATCH ID</th>
+                            <th>AMOUNT</th>
+                            <th>QBER</th>
+                            <th>STATUS</th>
+                            <th>DETAILS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="settlement-tbody">
+                        <tr class="empty-row">
+                            <td colspan="6">No settlement batches executed yet. Click "SETTLE BATCH" to initiate.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- MODAL / DETAIL DRAWER -->
+    <div class="modal-overlay hidden" id="detail-modal" onclick="closeModal(event)">
+        <div class="modal-box" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 id="modal-title">BATCH DETAILS</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <pre id="modal-json"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
