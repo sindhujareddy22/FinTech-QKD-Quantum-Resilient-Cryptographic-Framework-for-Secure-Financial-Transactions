@@ -3,161 +3,283 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FinTech QKD &bull; Settlement Operations Console</title>
+    <title>FinTech QKD &bull; Quantum Interbank Settlement Terminal</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <div class="console-wrapper">
+    <div class="terminal-shell">
         
-        <!-- REGION 1: HEADER -->
-        <header class="console-header">
-            <div class="header-left">
-                <span class="system-label">INTERBANK SETTLEMENT BACKBONE &bull; QKD SECURITY LAYER</span>
-                <h1 id="node-title">NODE INITIALIZING...</h1>
-            </div>
-            
-            <div class="header-right">
-                <div class="link-meta">
-                    <span class="meta-label">PEER LINK:</span>
-                    <span class="meta-val" id="peer-address">127.0.0.1:8001</span>
+        <!-- TOP APP BAR -->
+        <header class="app-header">
+            <div class="header-brand">
+                <div class="quantum-badge-icon">
+                    <span class="q-icon">&Psi;</span>
                 </div>
-                <div class="connection-status disconnected" id="peer-badge">
-                    <span class="status-indicator"></span>
-                    <span id="peer-status-text">DISCONNECTED</span>
+                <div class="brand-headings">
+                    <div class="brand-row">
+                        <h1 id="node-title">FINTECH QKD NODE</h1>
+                        <span class="env-tag">PRODUCTION PROTOCOL</span>
+                    </div>
+                    <span class="brand-desc">Quantum Key Distribution &bull; Interbank Settlement Backbone</span>
+                </div>
+            </div>
+
+            <!-- SYSTEM TELEMETRY STRIP -->
+            <div class="telemetry-strip">
+                <div class="telemetry-item">
+                    <span class="t-label">PEER NODE</span>
+                    <span class="t-val font-mono" id="peer-address">127.0.0.1:8001</span>
+                </div>
+                <div class="telemetry-item">
+                    <span class="t-label">CRYPTO SUITE</span>
+                    <span class="t-val text-cyan font-mono">QKD + ML-KEM + AES-GCM</span>
+                </div>
+                <div class="connection-pill disconnected" id="peer-badge">
+                    <span class="status-dot"></span>
+                    <span id="peer-status-text">CONNECTING</span>
                 </div>
             </div>
         </header>
 
-        <!-- SECURITY ALERT BANNER -->
-        <div class="alert-banner hidden" id="alert-banner">
-            <div class="alert-content">
-                <span class="alert-icon">&#x26A0;</span>
-                <span class="alert-msg" id="alert-text">Eavesdropper detected — settlement blocked</span>
+        <!-- CRITICAL SECURITY ALERT BANNER -->
+        <div class="threat-banner hidden" id="alert-banner">
+            <div class="threat-left">
+                <div class="threat-icon-box">&#9888;</div>
+                <div class="threat-text">
+                    <span class="threat-title">CRITICAL SECURITY THREAT DETECTED</span>
+                    <span class="threat-desc" id="alert-text">Eavesdropper detected on quantum channel — settlement blocked immediately!</span>
+                </div>
             </div>
-            <span class="alert-tag">TRANSMISSION HALTED</span>
+            <div class="threat-meta">
+                <span class="threat-badge">ZERO DATA EXPOSED</span>
+                <span class="threat-action">TRANSMISSION HALTED</span>
+            </div>
         </div>
 
-        <!-- REGION 2: CHANNEL STATUS (MOST PROMINENT) -->
-        <section class="channel-status-panel" id="channel-card">
-            <div class="channel-main-row">
-                <div class="channel-state-block">
-                    <span class="panel-subtitle">QUANTUM CHANNEL STATUS</span>
-                    <div class="status-pill secure" id="channel-state-pill">SECURE</div>
-                </div>
-
-                <div class="qber-metric-block">
-                    <span class="panel-subtitle">MEASURED QUANTUM BIT ERROR RATE (QBER)</span>
-                    <div class="qber-number" id="qber-display">0.0%</div>
-                </div>
-            </div>
-
-            <!-- Sleek Horizontal QBER Bar with 11% Abort Threshold Marker -->
-            <div class="qber-meter">
-                <div class="meter-track">
-                    <div class="meter-fill" id="qber-bar-fill" style="width: 0%;"></div>
-                    <div class="threshold-line" style="left: 22%;">
-                        <div class="threshold-pin"></div>
-                        <span class="threshold-label">ABORT THRESHOLD: 11.0%</span>
+        <!-- MAIN DASHBOARD CONTENT -->
+        <div class="dashboard-grid">
+            
+            <!-- LEFT COLUMN: QUANTUM LINK SECURITY HUB -->
+            <div class="col-left">
+                
+                <!-- PRIMARY CHANNEL STATUS CARD -->
+                <div class="dash-card status-card">
+                    <div class="card-header-bar">
+                        <div class="card-title-group">
+                            <span class="card-kicker">PHYSICAL QUANTUM LINK</span>
+                            <h2>CHANNEL INTEGRITY</h2>
+                        </div>
+                        <div class="security-indicator secure" id="channel-state-pill">
+                            <span class="sec-dot"></span>
+                            <span id="channel-state-text">SECURE LINK</span>
+                        </div>
                     </div>
-                </div>
-                <div class="meter-scale">
-                    <span>0.0% (Clean)</span>
-                    <span>11.0% (Threshold)</span>
-                    <span>25.0% (Eve Intercept)</span>
-                    <span>50.0% (Max)</span>
-                </div>
-            </div>
-        </section>
 
-        <!-- REGION 3: CONTROLS (TWO MAIN CONTROLS + ADVERSARY TOGGLE) -->
-        <section class="controls-deck">
-            <div class="action-buttons">
-                <button class="btn btn-settle" id="btn-settle" onclick="triggerSettle()">
-                    SETTLE BATCH
-                </button>
-                <button class="btn btn-autostream" id="btn-autostream" onclick="toggleAutoStream()">
-                    AUTO-STREAM: OFF
-                </button>
-            </div>
-
-            <div class="attacker-toggles">
-                <label class="toggle-item">
-                    <input type="checkbox" id="toggle-eve" onchange="toggleEve(this.checked)">
-                    <span class="toggle-switch"></span>
-                    <span class="toggle-text">ATTACKER SIMULATION (EVE)</span>
-                </label>
-
-                <label class="toggle-item">
-                    <input type="checkbox" id="toggle-tamper" onchange="toggleTamper(this.checked)">
-                    <span class="toggle-switch"></span>
-                    <span class="toggle-text">TAMPER CIPHERTEXT (GCM TEST)</span>
-                </label>
-            </div>
-        </section>
-
-        <!-- REGION 4: SETTLEMENT LOG -->
-        <section class="ledger-panel">
-            <div class="ledger-header">
-                <div class="ledger-title-group">
-                    <h2>SETTLEMENT LEDGER</h2>
-                    <span class="ledger-sub">Continuous Real-Time ISO 20022 Audit Trail</span>
-                </div>
-
-                <div class="ledger-counters">
-                    <div class="counter-box">
-                        <span class="counter-title">TOTAL</span>
-                        <strong class="counter-num" id="stat-total">0</strong>
+                    <!-- HERO QBER METRIC -->
+                    <div class="qber-hero-display">
+                        <div class="qber-val-box">
+                            <span class="qber-big text-emerald" id="qber-display">0.0%</span>
+                            <span class="qber-caption">QUANTUM BIT ERROR RATE (QBER)</span>
+                        </div>
+                        <div class="qber-sparkline-box">
+                            <span class="sparkline-title">ROUND HISTORY (LAST 10)</span>
+                            <div class="sparkline-bars" id="sparkline-bars">
+                                <!-- Rendered dynamically via JS -->
+                            </div>
+                        </div>
                     </div>
-                    <div class="counter-box settled">
-                        <span class="counter-title">SETTLED</span>
-                        <strong class="counter-num" id="stat-settled">0</strong>
+
+                    <!-- PROGRESS BAR METER -->
+                    <div class="meter-wrapper">
+                        <div class="meter-labels">
+                            <span class="m-label">0.0% Clean</span>
+                            <span class="m-label text-crimson font-bold">11.0% Abort Threshold</span>
+                            <span class="m-label">50.0% Max</span>
+                        </div>
+                        <div class="meter-track-shell">
+                            <div class="meter-bar-fill" id="qber-bar-fill" style="width: 0%;"></div>
+                            <div class="threshold-pointer" style="left: 22%;">
+                                <div class="pointer-line"></div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="counter-box blocked">
-                        <span class="counter-title">BLOCKED</span>
-                        <strong class="counter-num" id="stat-blocked">0</strong>
+
+                    <!-- PARAMETERS GRID -->
+                    <div class="params-grid">
+                        <div class="param-box">
+                            <span class="p-label">PHOTON PULSES</span>
+                            <span class="p-val font-mono">600 / round</span>
+                        </div>
+                        <div class="param-box">
+                            <span class="p-label">BB84 BASES</span>
+                            <span class="p-val font-mono">Rectilinear (+) &amp; Diagonal (&times;)</span>
+                        </div>
+                        <div class="param-box">
+                            <span class="p-label">PRIVACY AMPLIFICATION</span>
+                            <span class="p-val font-mono">SHA-256 (32 Bytes)</span>
+                        </div>
+                        <div class="param-box">
+                            <span class="p-label">POST-QUANTUM KEM</span>
+                            <span class="p-val text-indigo font-mono">ML-KEM-768 (Kyber)</span>
+                        </div>
                     </div>
+
                 </div>
+
+                <!-- OPERATOR ACTION & ADVERSARY CONTROL CENTER -->
+                <div class="dash-card controls-card">
+                    <div class="card-header-bar">
+                        <div class="card-title-group">
+                            <span class="card-kicker">LINK OPERATIONS</span>
+                            <h2>SETTLEMENT &amp; ATTACK CONTROLS</h2>
+                        </div>
+                    </div>
+
+                    <!-- ACTION BUTTONS -->
+                    <div class="button-group">
+                        <button class="btn btn-primary" id="btn-settle" onclick="triggerSettle()">
+                            <span class="btn-symbol">&#9658;</span>
+                            <span>SETTLE BATCH NOW</span>
+                        </button>
+                        <button class="btn btn-secondary" id="btn-autostream" onclick="toggleAutoStream()">
+                            <span class="btn-symbol">&#8635;</span>
+                            <span id="autostream-label">AUTO-STREAM: OFF</span>
+                        </button>
+                    </div>
+
+                    <!-- ATTACKER SIMULATION DECK -->
+                    <div class="adversary-deck">
+                        <span class="deck-title">ADVERSARY SIMULATION CONTROLS</span>
+                        
+                        <div class="adversary-row">
+                            <div class="adv-info">
+                                <strong>ATTACKER SIMULATION (EVE)</strong>
+                                <span>Intercept-measure-resend on quantum channel (injects ~25% QBER).</span>
+                            </div>
+                            <label class="custom-switch">
+                                <input type="checkbox" id="toggle-eve" onchange="toggleEve(this.checked)">
+                                <span class="switch-handle"></span>
+                            </label>
+                        </div>
+
+                        <div class="adversary-row">
+                            <div class="adv-info">
+                                <strong>TAMPER CIPHERTEXT BYTES</strong>
+                                <span>Flips payload bits to demonstrate AES-256-GCM auth tag rejection.</span>
+                            </div>
+                            <label class="custom-switch">
+                                <input type="checkbox" id="toggle-tamper" onchange="toggleTamper(this.checked)">
+                                <span class="switch-handle"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                </div>
+
             </div>
 
-            <div class="table-container">
-                <table class="ledger-table">
-                    <thead>
-                        <tr>
-                            <th>TIME</th>
-                            <th>BATCH ID</th>
-                            <th>TOTAL AMOUNT</th>
-                            <th>TX COUNT</th>
-                            <th>QBER</th>
-                            <th>STATUS</th>
-                            <th>INSPECTION</th>
-                        </tr>
-                    </thead>
-                    <tbody id="settlement-tbody">
-                        <tr class="empty-row">
-                            <td colspan="7">No settlement batches executed yet. Click "SETTLE BATCH" to begin.</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <!-- RIGHT COLUMN: AUDIT TRAIL & SETTLEMENT LEDGER -->
+            <div class="col-right">
+                
+                <div class="dash-card ledger-card">
+                    
+                    <div class="card-header-bar ledger-head">
+                        <div class="card-title-group">
+                            <span class="card-kicker">FINANCIAL AUDIT TRAIL</span>
+                            <h2>INTERBANK SETTLEMENT LEDGER</h2>
+                        </div>
+
+                        <!-- STATISTIC CARDS -->
+                        <div class="stat-capsules">
+                            <div class="capsule">
+                                <span class="c-title">TOTAL</span>
+                                <strong class="c-num" id="stat-total">0</strong>
+                            </div>
+                            <div class="capsule settled">
+                                <span class="c-title">SETTLED</span>
+                                <strong class="c-num" id="stat-settled">0</strong>
+                            </div>
+                            <div class="capsule blocked">
+                                <span class="c-title">BLOCKED</span>
+                                <strong class="c-num" id="stat-blocked">0</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SEARCH & FILTER TOOLBAR -->
+                    <div class="ledger-filter-bar">
+                        <div class="search-input-wrap">
+                            <span class="search-ico">&#128269;</span>
+                            <input type="text" id="ledger-search" placeholder="Search by Batch ID, Amount, or Status..." oninput="filterLedger()">
+                        </div>
+                        <div class="filter-tabs">
+                            <button class="filter-tab active" onclick="setFilter('ALL', this)">ALL</button>
+                            <button class="filter-tab" onclick="setFilter('SETTLED', this)">SETTLED</button>
+                            <button class="filter-tab" onclick="setFilter('BLOCKED', this)">BLOCKED</button>
+                        </div>
+                    </div>
+
+                    <!-- HIGH DENSITY FINANCIAL TABLE -->
+                    <div class="table-scroll-shell">
+                        <table class="financial-table">
+                            <thead>
+                                <tr>
+                                    <th>TIME</th>
+                                    <th>BATCH ID</th>
+                                    <th>SETTLEMENT AMOUNT</th>
+                                    <th>TXS</th>
+                                    <th>QBER</th>
+                                    <th>STATUS</th>
+                                    <th>PAYLOAD</th>
+                                </tr>
+                            </thead>
+                            <tbody id="settlement-tbody">
+                                <tr class="table-empty-row">
+                                    <td colspan="7">
+                                        <div class="empty-state-view">
+                                            <span class="empty-state-icon">&bull;&bull;&bull;</span>
+                                            <span>No settlement transactions processed yet.</span>
+                                            <small>Click "SETTLE BATCH NOW" or start "AUTO-STREAM" to initiate quantum exchange.</small>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+
             </div>
-        </section>
+
+        </div>
 
     </div>
 
-    <!-- MODAL / DETAIL DRAWER -->
-    <div class="modal-overlay hidden" id="detail-modal" onclick="closeModal(event)">
-        <div class="modal-card" onclick="event.stopPropagation()">
-            <div class="modal-header">
-                <div class="modal-title-wrap">
-                    <span class="modal-tag">ISO 20022 PACs.008 SETTLEMENT BATCH</span>
+    <!-- PAYLOAD INSPECTOR MODAL -->
+    <div class="inspector-overlay hidden" id="detail-modal" onclick="closeModal(event)">
+        <div class="inspector-modal" onclick="event.stopPropagation()">
+            <div class="inspector-header">
+                <div class="inspector-title-wrap">
+                    <span class="inspector-tag">ISO 20022 pacs.008 &bull; INTERBANK SETTLEMENT BATCH</span>
                     <h3 id="modal-title">BATCH INSPECTION</h3>
                 </div>
-                <button class="modal-close" onclick="closeModal()">&times;</button>
+                <div class="inspector-actions">
+                    <button class="btn-pill" onclick="copyModalJson()">COPY JSON</button>
+                    <button class="btn-close-modal" onclick="closeModal()">&times;</button>
+                </div>
             </div>
-            <div class="modal-body">
-                <pre id="modal-json"></pre>
+
+            <div class="inspector-body">
+                <!-- ACCORDION PAYMENT ITEMS -->
+                <div class="payment-orders-list" id="modal-tx-list"></div>
+
+                <div class="raw-json-header">
+                    <span>RAW JSON CIPHERTEXT &amp; SESSION METADATA</span>
+                </div>
+                <pre class="raw-json-view" id="modal-json"></pre>
             </div>
         </div>
     </div>
