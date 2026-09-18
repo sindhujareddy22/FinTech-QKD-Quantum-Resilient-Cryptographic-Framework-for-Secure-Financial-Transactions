@@ -165,6 +165,32 @@ def create_node_app(role: str, host: str, port: int, peer_host: str, peer_port: 
             if websocket in state.ui_websockets:
                 state.ui_websockets.remove(websocket)
 
+    # ---------------- OPERATOR REST ENDPOINTS (TERMINAL & UI) ----------------
+
+    @app.post("/api/settle")
+    async def api_settle():
+        """Triggers a settlement round on Bank A node."""
+        if state.role != "bank":
+            raise HTTPException(status_code=400, detail="Only Bank node can initiate settlements.")
+        asyncio.create_task(run_settlement_round(state))
+        return {"status": "SETTLEMENT_INITIATED"}
+
+    @app.post("/api/eve/toggle")
+    async def api_toggle_eve(payload: Dict[str, Any] = None):
+        """Sets or toggles Eve quantum wiretap state."""
+        val = payload.get("value") if payload else None
+        is_active = state.eve.toggle_active(val)
+        await state.broadcast_ui_update()
+        return {"eve_active": is_active}
+
+    @app.post("/api/eve/tamper")
+    async def api_toggle_tamper(payload: Dict[str, Any] = None):
+        """Sets or toggles AES-GCM ciphertext tampering state."""
+        val = payload.get("value") if payload else None
+        is_tamper = state.eve.toggle_tamper(val)
+        await state.broadcast_ui_update()
+        return {"tamper_active": is_tamper}
+
     # ---------------- INTER-NODE PROTOCOL ENDPOINTS ----------------
 
     @app.get("/api/health")

@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/styles.css?v=3.0">
 </head>
 <body>
     <div class="terminal-shell">
@@ -37,6 +37,11 @@
                     <span class="t-label">CRYPTO SUITE</span>
                     <span class="t-val text-cyan font-mono">QKD + ML-KEM + AES-GCM</span>
                 </div>
+                <button class="btn-eve-launcher" id="btn-eve-terminal" onclick="openEveTerminal()" title="Launch Quantum Adversary Command Terminal">
+                    <span class="term-pulse-dot"></span>
+                    <span class="term-sym">&gt;_</span>
+                    <span>EVE TERMINAL</span>
+                </button>
                 <div class="connection-pill disconnected" id="peer-badge">
                     <span class="status-dot"></span>
                     <span id="peer-status-text">CONNECTING</span>
@@ -129,12 +134,12 @@
 
                 </div>
 
-                <!-- OPERATOR ACTION & ADVERSARY CONTROL CENTER -->
+                <!-- OPERATOR ACTION & SETTLEMENT CONTROLS -->
                 <div class="dash-card controls-card">
                     <div class="card-header-bar">
                         <div class="card-title-group">
                             <span class="card-kicker">LINK OPERATIONS</span>
-                            <h2>SETTLEMENT &amp; ATTACK CONTROLS</h2>
+                            <h2>SETTLEMENT CONTROLS</h2>
                         </div>
                     </div>
 
@@ -150,30 +155,22 @@
                         </button>
                     </div>
 
-                    <!-- ATTACKER SIMULATION DECK -->
-                    <div class="adversary-deck">
-                        <span class="deck-title">ADVERSARY SIMULATION CONTROLS</span>
-                        
-                        <div class="adversary-row">
-                            <div class="adv-info">
-                                <strong>ATTACKER SIMULATION (EVE)</strong>
-                                <span>Intercept-measure-resend on quantum channel (injects ~25% QBER).</span>
+                    <!-- ADVERSARY LAB TERMINAL LAUNCHER (BANK ONLY) -->
+                    <div class="adversary-deck" id="adversary-deck-card">
+                        <div class="adv-terminal-card-info">
+                            <div class="adv-terminal-badge-row">
+                                <span class="adv-badge-tag">OFFENSIVE SECURITY LAB</span>
+                                <span class="adv-badge-status font-mono" id="adv-card-status">TERMINAL READY</span>
                             </div>
-                            <label class="custom-switch">
-                                <input type="checkbox" id="toggle-eve" onchange="toggleEve(this.checked)">
-                                <span class="switch-handle"></span>
-                            </label>
+                            <strong>Quantum Wiretap &amp; Adversary Terminal</strong>
+                            <p>Eavesdropping attacks are executed exclusively via CLI commands inside the dedicated Eve terminal window.</p>
                         </div>
-
-                        <div class="adversary-row">
-                            <div class="adv-info">
-                                <strong>TAMPER CIPHERTEXT BYTES</strong>
-                                <span>Flips payload bits to demonstrate AES-256-GCM auth tag rejection.</span>
-                            </div>
-                            <label class="custom-switch">
-                                <input type="checkbox" id="toggle-tamper" onchange="toggleTamper(this.checked)">
-                                <span class="switch-handle"></span>
-                            </label>
+                        
+                        <div class="adversary-terminal-trigger">
+                            <button class="btn-hacker-term" onclick="openEveTerminal()">
+                                <span class="hacker-term-icon">&gt;_</span>
+                                <span>OPEN EVE COMMAND TERMINAL</span>
+                            </button>
                         </div>
                     </div>
 
@@ -258,6 +255,72 @@
 
     </div>
 
+    <!-- EVE ADVERSARY HACKER TERMINAL MODAL -->
+    <div class="inspector-overlay hidden" id="eve-terminal-modal" onclick="closeEveTerminal(event)">
+        <div class="eve-term-window" onclick="event.stopPropagation()">
+            
+            <!-- TERMINAL TITLEBAR -->
+            <div class="eve-term-titlebar">
+                <div class="eve-term-window-controls">
+                    <span class="term-dot dot-close" onclick="closeEveTerminal()" title="Close Terminal"></span>
+                    <span class="term-dot dot-min" onclick="closeEveTerminal()" title="Minimize"></span>
+                    <span class="term-dot dot-max" title="Fullscreen"></span>
+                </div>
+                <div class="eve-term-title">
+                    <span class="eve-title-glitch" data-text="EVE // QUANTUM FIBER INTERCEPT TERMINAL">EVE // QUANTUM FIBER INTERCEPT TERMINAL</span>
+                    <span class="eve-term-status" id="term-eve-status-badge">ARMED / READY</span>
+                </div>
+                <div class="eve-term-actions">
+                    <button class="btn-term-clear" onclick="clearTerminalOutput()">CLEAR</button>
+                    <button class="btn-close-modal" onclick="closeEveTerminal()">&times;</button>
+                </div>
+            </div>
+
+            <!-- TARGET METADATA STRIP -->
+            <div class="eve-term-target-strip">
+                <div class="target-item">
+                    <span class="target-lbl">FIBER TAP LINK:</span>
+                    <span class="target-val font-mono" id="term-link-desc">Bank A ──[1550nm Optical Backbone]──► Peer</span>
+                </div>
+                <div class="target-item">
+                    <span class="target-lbl">TAP PROTOCOL:</span>
+                    <span class="target-val text-crimson font-mono">Beam-Splitter Intercept-Measure-Resend</span>
+                </div>
+                <div class="target-item">
+                    <span class="target-lbl">EVE STATE:</span>
+                    <span class="target-val font-mono" id="term-eve-state-text">INACTIVE</span>
+                </div>
+            </div>
+
+            <!-- TERMINAL LOG BUFFER (CRT / MATRIX SCREEN) -->
+            <div class="eve-term-screen" id="terminal-screen">
+                <div class="terminal-scanlines"></div>
+                <div class="terminal-output" id="terminal-output">
+                    <!-- Logs injected dynamically -->
+                </div>
+            </div>
+
+            <!-- QUICK ATTACK MACRO CHIPS -->
+            <div class="eve-term-quick-bar">
+                <span class="quick-label">QUICK ATTACKS:</span>
+                <button class="quick-chip chip-attack" onclick="executeTermCommand('attack')">attack</button>
+                <button class="quick-chip chip-attack-send" onclick="executeTermCommand('attack --send')">attack --send</button>
+                <button class="quick-chip chip-tamper" onclick="executeTermCommand('tamper')">tamper</button>
+                <button class="quick-chip chip-disarm" onclick="executeTermCommand('disarm')">disarm</button>
+                <button class="quick-chip chip-status" onclick="executeTermCommand('status')">status</button>
+                <button class="quick-chip chip-help" onclick="executeTermCommand('help')">help</button>
+            </div>
+
+            <!-- TERMINAL COMMAND INPUT LINE -->
+            <div class="eve-term-input-bar">
+                <span class="term-cli-prompt font-mono">eve@quantum-tap:~$</span>
+                <input type="text" id="terminal-input" class="term-cli-input font-mono" autocomplete="off" spellcheck="false" placeholder="Type 'attack' or 'help' and press Enter..." onkeydown="handleTerminalKey(event)">
+                <button class="btn-cli-run" onclick="submitTerminalInput()">EXECUTE</button>
+            </div>
+
+        </div>
+    </div>
+
     <!-- PAYLOAD INSPECTOR MODAL -->
     <div class="inspector-overlay hidden" id="detail-modal" onclick="closeModal(event)">
         <div class="inspector-modal" onclick="event.stopPropagation()">
@@ -284,6 +347,6 @@
         </div>
     </div>
 
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=3.0"></script>
 </body>
 </html>

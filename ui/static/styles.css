@@ -561,93 +561,66 @@ body {
     font-size: 14px;
 }
 
-/* ADVERSARY DECK */
+/* ADVERSARY DECK (TERMINAL LAUNCHER) */
 .adversary-deck {
-    background: var(--bg-card);
-    border: 1px solid var(--border-subtle);
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.7) 0%, rgba(8, 12, 20, 0.95) 100%);
+    border: 1px solid rgba(239, 68, 68, 0.25);
     border-radius: var(--radius-sm);
-    padding: 12px 14px;
+    padding: 14px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
+    box-shadow: inset 0 0 20px rgba(239, 68, 68, 0.04);
 }
 
-.deck-title {
-    font-size: 10px;
-    font-weight: 800;
-    color: var(--crimson-400);
-    letter-spacing: 0.08em;
+.adv-terminal-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
-.adversary-row {
+.adv-terminal-badge-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 10px;
-    background: var(--bg-panel);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm);
 }
 
-.adv-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+.adv-badge-tag {
+    font-size: 9.5px;
+    font-weight: 800;
+    color: #f87171;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
 }
 
-.adv-info strong {
-    font-size: 11.5px;
-    color: var(--text-primary);
-}
-
-.adv-info span {
+.adv-badge-status {
     font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--text-muted);
 }
 
-/* CUSTOM SWITCH */
-.custom-switch {
-    position: relative;
-    display: inline-block;
-    width: 38px;
-    height: 20px;
-    flex-shrink: 0;
+.adv-badge-status.active {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: #ef4444;
+    color: #fca5a5;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.35);
+    animation: evePulse 1.2s infinite;
 }
 
-.custom-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
+.adv-terminal-card-info strong {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
 }
 
-.switch-handle {
-    position: absolute;
-    cursor: pointer;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background-color: var(--bg-subtle);
-    border-radius: var(--radius-full);
-    transition: var(--transition);
-}
-
-.switch-handle:before {
-    position: absolute;
-    content: "";
-    height: 14px;
-    width: 14px;
-    left: 3px;
-    bottom: 3px;
-    background-color: #ffffff;
-    border-radius: 50%;
-    transition: var(--transition);
-}
-
-.custom-switch input:checked + .switch-handle {
-    background-color: var(--crimson-500);
-    box-shadow: 0 0 10px var(--crimson-glow);
-}
-
-.custom-switch input:checked + .switch-handle:before {
-    transform: translateX(18px);
+.adv-terminal-card-info p {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.4;
 }
 
 /* RIGHT COLUMN: SETTLEMENT LEDGER */
@@ -857,16 +830,18 @@ body {
 .inspector-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(0, 0, 0, 0.82);
     backdrop-filter: blur(8px);
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
+    z-index: 99999;
 }
 
 .inspector-overlay.hidden {
-    display: none;
+    display: none !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
 }
 
 .inspector-modal {
@@ -1030,3 +1005,442 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: var(--border-strong);
 }
+
+/* ==========================================================================
+   EVE ADVERSARY HACKER TERMINAL STYLES
+   ========================================================================== */
+
+/* Header Launcher Button */
+.btn-eve-launcher {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(185, 28, 28, 0.25) 100%);
+    border: 1px solid rgba(239, 68, 68, 0.5);
+    color: #fca5a5;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    box-shadow: 0 0 14px rgba(239, 68, 68, 0.2);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    letter-spacing: 0.04em;
+}
+
+.btn-eve-launcher:hover {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(220, 38, 38, 0.4) 100%);
+    border-color: #ef4444;
+    color: #ffffff;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.45);
+    transform: translateY(-1px);
+}
+
+.term-pulse-dot {
+    width: 7px;
+    height: 7px;
+    background: #ef4444;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #ef4444;
+    animation: evePulse 1.4s infinite;
+}
+
+@keyframes evePulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.term-sym {
+    font-weight: 800;
+    color: #f87171;
+}
+
+/* Control Deck Hacker Trigger */
+.adversary-terminal-trigger {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.btn-hacker-term {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: #0f172a;
+    border: 1px dashed rgba(239, 68, 68, 0.5);
+    color: #fca5a5;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 9px 16px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-hacker-term:hover {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: #ef4444;
+    color: #ffffff;
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.25);
+}
+
+.hacker-term-icon {
+    font-weight: 800;
+    color: #ef4444;
+}
+
+/* EVE TERMINAL MODAL WINDOW */
+.eve-term-window {
+    background: #030712;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: var(--radius-md);
+    width: 900px;
+    max-width: 95vw;
+    height: 620px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 35px rgba(239, 68, 68, 0.18);
+    overflow: hidden;
+    animation: termSlideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes termSlideIn {
+    from { opacity: 0; transform: scale(0.96) translateY(12px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Titlebar */
+.eve-term-titlebar {
+    background: #0b0f19;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 10px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.eve-term-window-controls {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.term-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.term-dot:hover { opacity: 0.8; }
+.dot-close { background: #ef4444; }
+.dot-min { background: #f59e0b; }
+.dot-max { background: #10b981; }
+
+.eve-term-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.eve-title-glitch {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: #f87171;
+    text-transform: uppercase;
+}
+
+.eve-term-status {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+    letter-spacing: 0.04em;
+}
+
+.eve-term-status.active {
+    background: rgba(239, 68, 68, 0.35);
+    border-color: #ef4444;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+    animation: evePulse 1.2s infinite;
+}
+
+.eve-term-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-term-clear {
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-term-clear:hover {
+    color: var(--text-primary);
+    background: #1f2937;
+}
+
+/* Target Strip */
+.eve-term-target-strip {
+    background: #060a12;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 6px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+}
+
+.target-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.target-lbl {
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.target-val {
+    color: #94a3b8;
+}
+
+/* CRT / Matrix Screen */
+.eve-term-screen {
+    flex: 1;
+    background: #02040a;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.terminal-scanlines {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+    background-size: 100% 4px;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0.6;
+}
+
+.terminal-output {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 18px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.6;
+    color: #38bdf8;
+    z-index: 1;
+}
+
+/* Terminal Log Output Styles */
+.term-line {
+    margin-bottom: 3px;
+    word-break: break-word;
+    white-space: pre-wrap;
+}
+
+.term-ascii {
+    color: #f87171;
+    font-size: 10.5px;
+    line-height: 1.25;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.term-prompt-line {
+    color: #94a3b8;
+    margin-top: 8px;
+    margin-bottom: 4px;
+}
+
+.term-cmd-text {
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.term-success {
+    color: #34d399;
+}
+
+.term-alert {
+    color: #f87171;
+    font-weight: 700;
+}
+
+.term-warn {
+    color: #fbbf24;
+}
+
+.term-info {
+    color: #38bdf8;
+}
+
+.term-muted {
+    color: #64748b;
+}
+
+/* Quick Attack Chips */
+.eve-term-quick-bar {
+    background: #080d1a;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 6px 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+}
+
+.quick-label {
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--text-muted);
+    letter-spacing: 0.06em;
+    margin-right: 4px;
+    white-space: nowrap;
+}
+
+.quick-chip {
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.quick-chip:hover {
+    background: #1f2937;
+    border-color: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+}
+
+.chip-attack {
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.08);
+}
+.chip-attack:hover {
+    background: rgba(239, 68, 68, 0.25);
+    border-color: #ef4444;
+    color: #ffffff;
+}
+
+.chip-attack-send {
+    border-color: rgba(245, 158, 11, 0.4);
+    color: #fde68a;
+    background: rgba(245, 158, 11, 0.08);
+}
+.chip-attack-send:hover {
+    background: rgba(245, 158, 11, 0.25);
+    border-color: #f59e0b;
+    color: #ffffff;
+}
+
+.chip-tamper {
+    border-color: rgba(168, 85, 247, 0.4);
+    color: #e9d5ff;
+    background: rgba(168, 85, 247, 0.08);
+}
+.chip-tamper:hover {
+    background: rgba(168, 85, 247, 0.25);
+    border-color: #a855f7;
+    color: #ffffff;
+}
+
+.chip-disarm {
+    border-color: rgba(16, 185, 129, 0.4);
+    color: #a7f3d0;
+    background: rgba(16, 185, 129, 0.08);
+}
+.chip-disarm:hover {
+    background: rgba(16, 185, 129, 0.25);
+    border-color: #10b981;
+    color: #ffffff;
+}
+
+/* Terminal Input Bar */
+.eve-term-input-bar {
+    background: #030712;
+    border-top: 1px solid rgba(239, 68, 68, 0.3);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.term-cli-prompt {
+    color: #f87171;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.term-cli-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #f8fafc;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    caret-color: #ef4444;
+}
+
+.term-cli-input::placeholder {
+    color: #475569;
+    font-size: 12px;
+}
+
+.btn-cli-run {
+    background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+    border: none;
+    color: #ffffff;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+    transition: all 0.15s ease;
+}
+
+.btn-cli-run:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.6);
+}
+
