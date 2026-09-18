@@ -81,12 +81,20 @@ sequenceDiagram
 - Git
 
 ### 1. Clone & Install Dependencies
+
 ```bash
 # Clone the repository
-git clone <repo-url>
-cd "ADD - fintech"
+git clone https://github.com/sindhujareddy22/FinTech-QKD-Quantum-Resilient-Cryptographic-Framework-for-Secure-Financial-Transactions.git
+cd "FinTech-QKD-Quantum-Resilient-Cryptographic-Framework-for-Secure-Financial-Transactions"
 
-# Install required packages
+# Create and activate virtual environment
+# Windows (PowerShell):
+python -m venv .venv
+.\.venv\Scripts\pip install -r requirements.txt
+
+# macOS / Linux:
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -114,21 +122,80 @@ Open your browser to:
 
 ---
 
-### Mode B: Physical Two-Device Setup (Over Local Wi-Fi / LAN)
+### Mode B: Two Separate Computers on Same Wi-Fi / Local Network
 
-1. **Connect both laptops** to the same Wi-Fi network (or a phone mobile hotspot; avoid corporate networks with client isolation).
-2. **Find Device B's Local LAN IP**:
-   - **macOS / Linux**: `ipconfig getifaddr en0` or `hostname -I` (e.g., `192.168.1.45`)
-   - **Windows**: `ipconfig` (look for IPv4 Address under Wireless LAN)
-3. **Start Device B (Clearing House)** first:
-   ```bash
-   python main.py --role clearing --host 0.0.0.0 --port 8001 --peer-host <DEVICE_A_IP> --peer-port 8000
-   ```
-4. **Start Device A (Bank A)** second:
-   ```bash
-   python main.py --role bank --host 0.0.0.0 --port 8000 --peer-host 192.168.1.45 --peer-port 8001
-   ```
-5. Open `http://localhost:8000` on Device A and `http://localhost:8001` on Device B.
+Run **Bank A (Sender)** on Machine A and **Clearing House (Receiver)** on Machine B.
+
+#### Step 1: Connect Both Computers to the Same Network
+Connect both computers to the same Wi-Fi router or a phone mobile hotspot (hotspots avoid corporate client isolation).
+
+#### Step 2: Find the IP Address of Each Machine
+- **Windows**: Open PowerShell or Command Prompt, run:
+  ```powershell
+  ipconfig
+  ```
+  Look for the **IPv4 Address** under `Wireless LAN adapter Wi-Fi` or `Ethernet adapter Ethernet` (e.g., `192.168.1.45` or `192.168.136.189`).
+- **macOS / Linux**:
+  ```bash
+  ipconfig getifaddr en0
+  # or
+  hostname -I
+  ```
+
+> [!IMPORTANT]
+> When running the commands below, replace the IP addresses with your actual numeric IPs. **Do not include the `<` or `>` symbols in your command.**
+
+---
+
+#### Step 3: Start Machine B — Clearing House (Receiver) FIRST
+Open terminal in the project directory on **Machine B**:
+
+- **Windows (PowerShell)**:
+  ```powershell
+  .\.venv\Scripts\python.exe main.py --role clearing --host 0.0.0.0 --port 8001 --peer-host <MACHINE_A_IP> --peer-port 8000
+  ```
+  *Example (where Machine A's IP is 192.168.136.50):*
+  ```powershell
+  .\.venv\Scripts\python.exe main.py --role clearing --host 0.0.0.0 --port 8001 --peer-host 192.168.136.50 --peer-port 8000
+  ```
+
+- **macOS / Linux**:
+  ```bash
+  python3 main.py --role clearing --host 0.0.0.0 --port 8001 --peer-host 192.168.136.50 --peer-port 8000
+  ```
+
+- Open browser on Machine B: [http://localhost:8001](http://localhost:8001)
+
+---
+
+#### Step 4: Start Machine A — Bank A (Sender) SECOND
+Open terminal in the project directory on **Machine A**:
+
+- **Windows (PowerShell)**:
+  ```powershell
+  .\.venv\Scripts\python.exe main.py --role bank --host 0.0.0.0 --port 8000 --peer-host <MACHINE_B_IP> --peer-port 8001
+  ```
+  *Example (where Machine B's IP is 192.168.136.189):*
+  ```powershell
+  .\.venv\Scripts\python.exe main.py --role bank --host 0.0.0.0 --port 8000 --peer-host 192.168.136.189 --peer-port 8001
+  ```
+
+- **macOS / Linux**:
+  ```bash
+  python3 main.py --role bank --host 0.0.0.0 --port 8000 --peer-host 192.168.136.189 --peer-port 8001
+  ```
+
+- Open browser on Machine A: [http://localhost:8000](http://localhost:8000)
+
+---
+
+#### Step 5: Windows Firewall Note
+If Windows Defender prompts with a firewall alert when starting the server:
+- Check **Private networks** and click **Allow access**.
+- To allow traffic manually on Windows (run PowerShell as Administrator):
+  ```powershell
+  New-NetFirewallRule -DisplayName "FinTech QKD Link" -Direction Inbound -LocalPort 8000,8001 -Protocol TCP -Action Allow
+  ```
 
 ---
 
