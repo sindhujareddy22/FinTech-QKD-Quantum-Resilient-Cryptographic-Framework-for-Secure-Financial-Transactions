@@ -68,7 +68,10 @@ def main():
     print("\n" + "="*65)
     print(f"  FinTech QKD: Quantum-Resilient Interbank Settlement Link")
     print(f"  Role:       {args.role.upper()} ({'Sender' if args.role == 'bank' else 'Receiver'})")
-    print(f"  Local Node: http://{args.host}:{port}")
+    browser_host = "localhost" if args.host == "0.0.0.0" else args.host
+    print(f"  UI Console: http://{browser_host}:{port}  (or http://127.0.0.1:{port})")
+    if args.host == "0.0.0.0":
+        print(f"  Network:    Listening on 0.0.0.0:{port} (accessible from LAN IP)")
     print(f"  Peer Node:  http://{args.peer_host}:{peer_port}")
     print(f"  QBER Gate:  Abort threshold >= {CONFIG.QBER_ABORT_THRESHOLD*100:.1f}%")
     print(f"  Re-Keying:  Enforced PER-SETTLEMENT with BB84 + PQC Hybrid")
