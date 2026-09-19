@@ -154,17 +154,15 @@ Open terminal in the project directory on **Machine B**:
   ```powershell
   .\.venv\Scripts\python.exe main.py --role clearing --host 0.0.0.0 --port 8001 --peer-host <MACHINE_A_IP> --peer-port 8000
   ```
-  *Example (where Machine A's IP is 192.168.136.50):*
-  ```powershell
-  .\.venv\Scripts\python.exe main.py --role clearing --host 0.0.0.0 --port 8001 --peer-host 192.168.136.50 --peer-port 8000
-  ```
+  *(Note: If Machine A is using port 8080, set `--peer-port 8080`)*
 
 - **macOS / Linux**:
   ```bash
-  python3 main.py --role clearing --host 0.0.0.0 --port 8001 --peer-host 192.168.136.50 --peer-port 8000
+  python3 main.py --role clearing --host 0.0.0.0 --port 8001 --peer-host <MACHINE_A_IP> --peer-port 8000
   ```
 
-- Open browser on Machine B: [http://localhost:8001](http://localhost:8001)
+- **Open Web Console on Machine B**: [http://localhost:8001](http://localhost:8001)  
+  *(Do **not** type `0.0.0.0:8001` into your browser address bar; use `localhost:8001` to avoid `ERR_ADDRESS_INVALID`).*
 
 ---
 
@@ -175,17 +173,29 @@ Open terminal in the project directory on **Machine A**:
   ```powershell
   .\.venv\Scripts\python.exe main.py --role bank --host 0.0.0.0 --port 8000 --peer-host <MACHINE_B_IP> --peer-port 8001
   ```
-  *Example (where Machine B's IP is 192.168.136.189):*
-  ```powershell
-  .\.venv\Scripts\python.exe main.py --role bank --host 0.0.0.0 --port 8000 --peer-host 192.168.136.189 --peer-port 8001
-  ```
 
 - **macOS / Linux**:
   ```bash
-  python3 main.py --role bank --host 0.0.0.0 --port 8000 --peer-host 192.168.136.189 --peer-port 8001
+  python3 main.py --role bank --host 0.0.0.0 --port 8000 --peer-host <MACHINE_B_IP> --peer-port 8001
   ```
 
-- Open browser on Machine A: [http://localhost:8000](http://localhost:8000)
+- **Open Web Console on Machine A**: [http://localhost:8000](http://localhost:8000) (or `http://localhost:8080` if using port 8080).
+
+> [!TIP]
+> **If Port 8000 is Already in Use on macOS (`[Errno 48] Address already in use`):**
+> 1. **Option A (Kill lingering process)**: Run `lsof -ti :8000 | xargs kill -9` then retry `--port 8000`.
+> 2. **Option B (Use Port 8080)**:
+>    - **Machine A (Bank on Mac)**:
+>      ```bash
+>      python3 main.py --role bank --host 0.0.0.0 --port 8080 --peer-host <MACHINE_B_IP> --peer-port 8001
+>      ```
+>      Browser: [http://localhost:8080](http://localhost:8080)
+>    - **Machine B (Clearing on Windows)**:
+>      ```powershell
+>      .\.venv\Scripts\python.exe main.py --role clearing --host 0.0.0.0 --port 8001 --peer-host <MACHINE_A_IP> --peer-port 8080
+>      ```
+> 3. **If `ModuleNotFoundError: No module named 'cryptography'` occurs**:
+>    Run `pip install -r requirements.txt` before launching `main.py`.
 
 ---
 
@@ -194,7 +204,7 @@ If Windows Defender prompts with a firewall alert when starting the server:
 - Check **Private networks** and click **Allow access**.
 - To allow traffic manually on Windows (run PowerShell as Administrator):
   ```powershell
-  New-NetFirewallRule -DisplayName "FinTech QKD Link" -Direction Inbound -LocalPort 8000,8001 -Protocol TCP -Action Allow
+  New-NetFirewallRule -DisplayName "FinTech QKD Link" -Direction Inbound -LocalPort 8000,8001,8080 -Protocol TCP -Action Allow
   ```
 
 ---
