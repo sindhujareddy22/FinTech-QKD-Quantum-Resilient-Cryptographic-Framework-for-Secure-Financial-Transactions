@@ -112,6 +112,15 @@ class NodeState:
                 self.ui_websockets.remove(ws)
 
 
+async def notify_peer_disconnect(peer_url: str):
+    """Sends background notification to peer node to clear alert states when Eve is disconnected."""
+    try:
+        async with httpx.AsyncClient(timeout=1.5) as client:
+            await client.post(f"{peer_url}/api/eve/disconnect")
+    except Exception:
+        pass
+
+
 def create_node_app(role: str, host: str, port: int, peer_host: str, peer_port: int) -> FastAPI:
     """Factory creating configured FastAPI app for a node."""
     app = FastAPI(title=f"FinTech QKD Node ({role.upper()})")
@@ -124,10 +133,18 @@ def create_node_app(role: str, host: str, port: int, peer_host: str, peer_port: 
     if os.path.exists(static_dir):
         app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
+    @app.middleware("http")
+    async def add_no_cache_header(request, call_next):
+        response = await call_next(request)
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+
     @app.get("/")
     async def serve_index():
         index_file = os.path.join(static_dir, "index.html")
-        return FileResponse(index_file)
+        return FileResponse(index_file, headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
     @app.get("/api/status")
     async def get_status():
@@ -148,10 +165,20 @@ def create_node_app(role: str, host: str, port: int, peer_host: str, peer_port: 
                 elif action == "TOGGLE_EVE":
                     new_val = data.get("value")
                     state.eve.toggle_active(new_val)
+                    if not state.eve.is_active and not state.eve.tamper_ciphertext:
+                        state.channel_secure = True
+                        state.alert_message = None
+                        state.latest_qber = 0.0
+                        if state.role == "bank":
+                            asyncio.create_task(notify_peer_disconnect(state.peer_url))
+                    print(f"\n[EVE INTERCEPTOR] Wiretap {'ARMED (ATTACK MODE)' if state.eve.is_active else 'DISARMED (CLEAN CHANNEL / SECURED)'}")
                     await state.broadcast_ui_update()
                 elif action == "TOGGLE_TAMPER":
                     new_val = data.get("value")
                     state.eve.toggle_tamper(new_val)
+                    if not state.eve.is_active and not state.eve.tamper_ciphertext:
+                        state.channel_secure = True
+                        state.alert_message = None
                     await state.broadcast_ui_update()
                 elif action == "TOGGLE_AUTO_STREAM":
                     state.auto_stream_active = not state.auto_stream_active
@@ -180,14 +207,47 @@ def create_node_app(role: str, host: str, port: int, peer_host: str, peer_port: 
         """Sets or toggles Eve quantum wiretap state."""
         val = payload.get("value") if payload else None
         is_active = state.eve.toggle_active(val)
+        if not is_active and not state.eve.tamper_ciphertext:
+            state.channel_secure = True
+            state.alert_message = None
+            state.latest_qber = 0.0
+            if state.role == "bank":
+                asyncio.create_task(notify_peer_disconnect(state.peer_url))
+        print(f"\n[EVE INTERCEPTOR] Wiretap {'ARMED (ATTACK MODE)' if is_active else 'DISARMED (CLEAN CHANNEL / SECURED)'}")
         await state.broadcast_ui_update()
         return {"eve_active": is_active}
+
+    @app.post("/api/eve/disconnect")
+    async def api_disconnect_eve():
+        """Explicitly disconnects and disarms Eve interceptor and clears alerts."""
+        state.eve.is_active = False
+        state.eve.tamper_ciphertext = False
+        state.channel_secure = True
+        state.alert_message = None
+        state.latest_qber = 0.0
+        if state.role == "bank":
+            asyncio.create_task(notify_peer_disconnect(state.peer_url))
+        print("\n[🔌 EVE DISCONNECTED] Quantum wiretap completely disconnected and alerts cleared.")
+        await state.broadcast_ui_update()
+        return {"eve_active": False, "tamper_active": False, "channel_secure": True, "alert_message": None}
+
+    @app.post("/api/channel/reset")
+    async def api_reset_channel():
+        """Resets channel state and dismisses security alert banners."""
+        state.channel_secure = True
+        state.alert_message = None
+        state.latest_qber = 0.0
+        await state.broadcast_ui_update()
+        return {"channel_secure": True, "alert_message": None}
 
     @app.post("/api/eve/tamper")
     async def api_toggle_tamper(payload: Dict[str, Any] = None):
         """Sets or toggles AES-GCM ciphertext tampering state."""
         val = payload.get("value") if payload else None
         is_tamper = state.eve.toggle_tamper(val)
+        if not is_tamper and not state.eve.is_active:
+            state.channel_secure = True
+            state.alert_message = None
         await state.broadcast_ui_update()
         return {"tamper_active": is_tamper}
 
@@ -230,7 +290,23 @@ def create_node_app(role: str, host: str, port: int, peer_host: str, peer_port: 
         state.channel_secure = (qber < state.qber_threshold)
 
         if not state.channel_secure:
+            state.total_settlements += 1
+            state.blocked_count += 1
             state.alert_message = f"Eavesdropper detected — settlement blocked (QBER: {qber*100:.1f}%)"
+            log_entry = {
+                "id": str(uuid.uuid4())[:8],
+                "time": time.strftime("%H:%M:%S"),
+                "batch_id": f"BLOCKED-QBER-{int(qber*100)}PCT",
+                "amount": "$0.00",
+                "currency": "USD",
+                "tx_count": 0,
+                "status": "BLOCKED",
+                "qber": f"{qber * 100:.1f}%",
+                "reason": f"Eavesdropper Interception Detected (QBER: {qber*100:.1f}% >= {state.qber_threshold*100:.1f}%). Transmission aborted at QKD Gate.",
+                "batch_detail": None,
+            }
+            state.settlement_logs.insert(0, log_entry)
+            print(f"\n[⛔ BLOCKED - CLEARING] Eavesdropper detected! QBER: {qber*100:.1f}% >= {state.qber_threshold*100:.1f}% threshold. Quantum key discarded — settlement aborted.")
             # Clear ephemeral states on abort
             state.current_bob = None
             state.current_session_key = None
@@ -313,6 +389,7 @@ def create_node_app(role: str, host: str, port: int, peer_host: str, peer_port: 
                 "batch_detail": batch_data,
             }
             state.settlement_logs.insert(0, log_entry)
+            print(f"\n[✓ SETTLEMENT CONFIRMED - CLEARING] Batch {batch_data.get('batch_id')} decrypted & verified | Amount: ${batch_data.get('total_amount', 0):,.2f}")
             await state.broadcast_ui_update()
             return {"status": "SETTLED", "batch_id": batch_data.get("batch_id")}
 
@@ -334,6 +411,7 @@ def create_node_app(role: str, host: str, port: int, peer_host: str, peer_port: 
                 "batch_detail": None,
             }
             state.settlement_logs.insert(0, log_entry)
+            print(f"\n[⛔ PAYLOAD BLOCKED - CLEARING] Tamper / Breach detected: {str(exc)}")
             await state.broadcast_ui_update()
             raise HTTPException(status_code=400, detail=str(exc))
 
@@ -354,26 +432,25 @@ async def run_settlement_round(state: NodeState):
         try:
             # 0. Check peer health
             try:
-                h_res = await client.get(f"{state.peer_url}/api/health")
+                h_res = await client.get(f"{state.peer_url}/api/health", timeout=3.0)
                 state.peer_connected = (h_res.status_code == 200)
             except Exception:
                 state.peer_connected = False
-                state.blocked_count += 1
-                state.channel_secure = False
-                state.alert_message = f"Peer node unreachable at {state.peer_url}"
+                state.alert_message = f"Peer node unreachable at {state.peer_url} — Please ensure Clearing House is running."
                 log_entry = {
                     "id": str(uuid.uuid4())[:8],
                     "time": time.strftime("%H:%M:%S"),
-                    "batch_id": "UNREACHABLE",
+                    "batch_id": "OFFLINE-PEER",
                     "amount": "$0.00",
                     "currency": "USD",
                     "tx_count": 0,
                     "status": "BLOCKED",
-                    "qber": "N/A",
-                    "reason": f"Connection refused by peer {state.peer_url}",
+                    "qber": "0.0%",
+                    "reason": f"Connection refused: Peer node at {state.peer_url} is not responding.",
                     "batch_detail": None,
                 }
                 state.settlement_logs.insert(0, log_entry)
+                print(f"\n[⚠️ NETWORK ERROR - BANK A] Peer node unreachable at {state.peer_url}")
                 await state.broadcast_ui_update()
                 return
 
@@ -423,6 +500,7 @@ async def run_settlement_round(state: NodeState):
                     "batch_detail": None,
                 }
                 state.settlement_logs.insert(0, log_entry)
+                print(f"\n[⛔ SETTLEMENT BLOCKED - BANK A] Eavesdropper detected on quantum link! QBER: {qber*100:.1f}% >= threshold {state.qber_threshold*100:.1f}%. Transmission aborted — 0 bytes exposed.")
                 await state.broadcast_ui_update()
                 return
 
@@ -486,6 +564,7 @@ async def run_settlement_round(state: NodeState):
                     "batch_detail": batch.to_dict(),
                 }
                 state.settlement_logs.insert(0, log_entry)
+                print(f"\n[✓ SETTLEMENT CONFIRMED - BANK A] Batch {batch.batch_id} | Amount: ${batch.total_amount:,.2f} | Tx: {batch.transaction_count} | QBER: {qber*100:.1f}% (Clean)")
             else:
                 state.blocked_count += 1
                 state.channel_secure = False
@@ -503,6 +582,7 @@ async def run_settlement_round(state: NodeState):
                     "batch_detail": batch.to_dict(),
                 }
                 state.settlement_logs.insert(0, log_entry)
+                print(f"\n[⛔ PAYLOAD BLOCKED - BANK A] Receiver rejected payload: {tx_res.text}")
 
             await state.broadcast_ui_update()
 
@@ -523,6 +603,7 @@ async def run_settlement_round(state: NodeState):
                 "batch_detail": None,
             }
             state.settlement_logs.insert(0, log_entry)
+            print(f"\n[⛔ SETTLEMENT ERROR - BANK A] {str(exc)}")
             await state.broadcast_ui_update()
 
 

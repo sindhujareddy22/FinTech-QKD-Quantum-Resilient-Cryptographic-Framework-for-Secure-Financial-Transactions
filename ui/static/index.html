@@ -300,12 +300,14 @@
                 </div>
             </div>
 
-            <!-- QUICK ATTACK MACRO CHIPS -->
+            <!-- QUICK ATTACK & DEFENSE MACRO CHIPS -->
             <div class="eve-term-quick-bar">
-                <span class="quick-label">QUICK ATTACKS:</span>
+                <span class="quick-label">QUICK ACTIONS:</span>
                 <button class="quick-chip chip-attack" onclick="executeTermCommand('attack')">attack</button>
                 <button class="quick-chip chip-attack-send" onclick="executeTermCommand('attack --send')">attack --send</button>
                 <button class="quick-chip chip-tamper" onclick="executeTermCommand('tamper')">tamper</button>
+                <button class="quick-chip chip-disconnect" onclick="executeTermCommand('disconnect')">🔌 disconnect eve</button>
+                <button class="quick-chip chip-block" onclick="executeTermCommand('block')">🛡️ block attack</button>
                 <button class="quick-chip chip-disarm" onclick="executeTermCommand('disarm')">disarm</button>
                 <button class="quick-chip chip-status" onclick="executeTermCommand('status')">status</button>
                 <button class="quick-chip chip-help" onclick="executeTermCommand('help')">help</button>
@@ -314,7 +316,7 @@
             <!-- TERMINAL COMMAND INPUT LINE -->
             <div class="eve-term-input-bar">
                 <span class="term-cli-prompt font-mono">eve@quantum-tap:~$</span>
-                <input type="text" id="terminal-input" class="term-cli-input font-mono" autocomplete="off" spellcheck="false" placeholder="Type 'attack' or 'help' and press Enter..." onkeydown="handleTerminalKey(event)">
+                <input type="text" id="terminal-input" class="term-cli-input font-mono" autocomplete="off" spellcheck="false" placeholder="Type 'disconnect', 'attack', 'block', or 'help' and press Enter..." onkeydown="handleTerminalKey(event)">
                 <button class="btn-cli-run" onclick="submitTerminalInput()">EXECUTE</button>
             </div>
 
@@ -347,6 +349,6 @@
         </div>
     </div>
 
-    <script src="/static/app.js?v=3.0"></script>
+    <script src="/static/app.js?v=20260930_v105"></script>
 </body>
 </html>

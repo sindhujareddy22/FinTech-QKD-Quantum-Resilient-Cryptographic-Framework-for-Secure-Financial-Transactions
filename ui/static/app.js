@@ -283,23 +283,25 @@ function triggerSettle() {
 function toggleEve(checked) {
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ action: "TOGGLE_EVE", value: checked }));
+    } else {
+        fetch("/api/eve/toggle", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ value: checked })
+        }).catch(e => console.log("Eve toggle REST error:", e));
     }
-    fetch("/api/eve/toggle", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: checked })
-    }).catch(e => console.log("Eve toggle REST error:", e));
 }
 
 function toggleTamper(checked) {
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ action: "TOGGLE_TAMPER", value: checked }));
+    } else {
+        fetch("/api/eve/tamper", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ value: checked })
+        }).catch(e => console.log("Tamper toggle REST error:", e));
     }
-    fetch("/api/eve/tamper", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: checked })
-    }).catch(e => console.log("Tamper toggle REST error:", e));
 }
 
 function toggleAutoStream() {
@@ -495,6 +497,54 @@ function submitTerminalInput() {
     executeTermCommand(cmd);
 }
 
+function applyLocalDisarm() {
+    // 1. Hide alert banner immediately
+    const alertBanner = document.getElementById("alert-banner");
+    if (alertBanner) alertBanner.classList.add("hidden");
+    const alertText = document.getElementById("alert-text");
+    if (alertText) alertText.textContent = "";
+
+    // 2. Reset indicators to SECURE
+    const pill = document.getElementById("channel-state-pill");
+    if (pill) pill.className = "security-indicator secure";
+    const pillText = document.getElementById("channel-state-text");
+    if (pillText) pillText.textContent = "SECURE LINK";
+    const qberDisplay = document.getElementById("qber-display");
+    if (qberDisplay) {
+        qberDisplay.textContent = "0.0%";
+        qberDisplay.className = "qber-big text-emerald";
+    }
+    const qberFill = document.getElementById("qber-bar-fill");
+    if (qberFill) {
+        qberFill.style.width = "0%";
+        qberFill.className = "meter-bar-fill";
+    }
+
+    // 3. Reset Terminal badges
+    const termEveState = document.getElementById("term-eve-state-text");
+    const termBadge = document.getElementById("term-eve-status-badge");
+    if (termEveState) {
+        termEveState.textContent = "STANDBY (DISARMED)";
+        termEveState.className = "target-val text-muted font-mono";
+    }
+    if (termBadge) {
+        termBadge.textContent = "STANDBY // READY";
+        termBadge.className = "eve-term-status";
+    }
+    const advCardStatus = document.getElementById("adv-card-status");
+    if (advCardStatus) {
+        advCardStatus.textContent = "TERMINAL READY (DISARMED)";
+        advCardStatus.className = "adv-badge-status font-mono";
+    }
+
+    // 4. Update status object
+    currentStatus.eve_active = false;
+    currentStatus.tamper_active = false;
+    currentStatus.channel_secure = true;
+    currentStatus.alert_message = null;
+    currentStatus.latest_qber = 0.0;
+}
+
 function executeTermCommand(rawCmd) {
     const cmd = rawCmd.trim();
     const cmdLower = cmd.toLowerCase();
@@ -502,32 +552,86 @@ function executeTermCommand(rawCmd) {
     // Print command prompt echo
     appendTermLine(`eve@quantum-tap:~$ ${cmd}`, "term-prompt-line");
 
-    if (cmdLower === "help" || cmdLower === "?") {
-        appendTermLine("AVAILABLE EVE ATTACK COMMANDS:", "term-warn");
-        appendTermLine("  attack                - Arm Eve and immediately transmit an attacked batch (~25% QBER)", "term-info");
-        appendTermLine("  attack --send         - Same as 'attack'", "term-info");
-        appendTermLine("  inject / hack         - Same as 'attack'", "term-info");
-        appendTermLine("  disarm                - Disarm Eve & transmit clean settlement (recovers to 0.0% QBER)", "term-info");
-        appendTermLine("  tamper                - Flip ciphertext bytes & transmit (tests AES-GCM auth tag rejection)", "term-info");
-        appendTermLine("  settle                - Send standard settlement batch in current link state", "term-info");
+    const cmdClean = cmdLower.replace(/[^a-z0-9\s-]/g, " ").trim();
+
+    if (cmdClean === "help" || cmdClean === "?" || cmdClean.startsWith("help")) {
+        appendTermLine("AVAILABLE COMMANDS (ATTACK & DEFENSE):", "term-warn");
+        appendTermLine("  disconnect / disarm   - Disconnect Eve tap & clear all alert banners (0.0% QBER)", "term-info");
+        appendTermLine("  block / defend        - Block/sever Eve tap & verify clean channel restoration (0.0% QBER)", "term-info");
+        appendTermLine("  attack / inject       - Arm Eve wiretap & transmit attacked batch (~25% QBER -> AUTO-BLOCKED)", "term-info");
+        appendTermLine("  tamper / tamper on    - Flip ciphertext bytes & transmit (tests AES-GCM auth tag rejection)", "term-info");
+        appendTermLine("  settle / send         - Send standard settlement batch in current link state", "term-info");
         appendTermLine("  status                - View real-time quantum tap & link telemetry", "term-info");
         appendTermLine("  clear                 - Clear the terminal screen output", "term-info");
         appendTermLine("  exit / quit           - Close the attacker terminal window", "term-info");
     } else if (
-        cmdLower === "attack" ||
-        cmdLower === "attack --send" ||
-        cmdLower === "attack -s" ||
-        cmdLower === "attack --now" ||
-        cmdLower === "inject" ||
-        cmdLower === "hack" ||
-        cmdLower === "strike" ||
-        cmdLower === "run attack" ||
-        cmdLower === "start attack" ||
-        cmdLower === "eavesdrop" ||
-        cmdLower === "intercept" ||
-        cmdLower === "tap" ||
-        cmdLower === "eve" ||
-        cmdLower === "eve on"
+        cmdClean.includes("disconnect") ||
+        cmdClean.includes("unplug") ||
+        cmdClean.includes("detach") ||
+        cmdClean.includes("sever") ||
+        cmdClean.includes("kill") ||
+        cmdClean.includes("terminate") ||
+        cmdClean.includes("unhook") ||
+        cmdClean.includes("remove") ||
+        (cmdClean.includes("eve") && (cmdClean.includes("off") || cmdClean.includes("stop") || cmdClean.includes("close") || cmdClean.includes("drop") || cmdClean.includes("cut")))
+    ) {
+        applyLocalDisarm();
+        toggleEve(false);
+        toggleTamper(false);
+        fetch("/api/eve/disconnect", { method: "POST" }).catch(() => {});
+        fetch("/api/channel/reset", { method: "POST" }).catch(() => {});
+        appendTermLine("[🔌] [EVE DISCONNECTED] Optical fiber tap physically removed from 1550nm channel.", "term-success");
+        appendTermLine("[✓] Threat alerts cleared. Quantum optical link is now 100% SECURE (0.0% QBER).", "term-success");
+        appendTermLine("[*] Ready for settlement. Type 'settle' or click 'SETTLE BATCH NOW' to transmit clean batch.", "term-info");
+    } else if (
+        cmdClean.includes("block") ||
+        cmdClean.includes("defend") ||
+        cmdClean.includes("defense") ||
+        cmdClean.includes("protect") ||
+        cmdClean.includes("shield") ||
+        cmdClean.includes("isolate") ||
+        cmdClean.includes("neutralize") ||
+        cmdClean.includes("secure") ||
+        cmdClean.includes("guard")
+    ) {
+        applyLocalDisarm();
+        toggleEve(false);
+        toggleTamper(false);
+        fetch("/api/eve/disconnect", { method: "POST" }).catch(() => {});
+        fetch("/api/channel/reset", { method: "POST" }).catch(() => {});
+        appendTermLine("[🛡️] [DEFENSE ENGAGED] Optical wiretap isolated & severed from quantum link.", "term-success");
+        appendTermLine("[🛡️] Threat alerts dismissed: Quantum channel purged and SECURE (0.0% QBER).", "term-success");
+        appendTermLine("[*] Type 'settle' or click 'SETTLE BATCH NOW' to transmit verified batch.", "term-info");
+    } else if (
+        cmdClean.includes("disarm") ||
+        cmdClean.includes("clean") ||
+        cmdClean.includes("reset") ||
+        cmdClean.includes("standby") ||
+        cmdClean.includes("disable") ||
+        cmdClean.includes("deactivate") ||
+        cmdClean === "off" ||
+        cmdClean === "stop" ||
+        cmdClean.startsWith("stop attack")
+    ) {
+        applyLocalDisarm();
+        toggleEve(false);
+        toggleTamper(false);
+        fetch("/api/eve/disconnect", { method: "POST" }).catch(() => {});
+        fetch("/api/channel/reset", { method: "POST" }).catch(() => {});
+        appendTermLine("[*] [OPTICAL TAP DISENGAGED] Eve interceptor completely disarmed.", "term-success");
+        appendTermLine("[*] Threat alerts cleared. Quantum optical channel restored to SECURE (0.0% QBER).", "term-success");
+        appendTermLine("[*] Type 'settle' or click 'SETTLE BATCH NOW' to transmit verified batch.", "term-info");
+    } else if (
+        cmdClean.includes("attack") ||
+        cmdClean.includes("inject") ||
+        cmdClean.includes("hack") ||
+        cmdClean.includes("strike") ||
+        cmdClean.includes("intercept") ||
+        cmdClean.includes("eavesdrop") ||
+        cmdClean.includes("tap") ||
+        cmdClean === "eve" ||
+        cmdClean === "eve on" ||
+        cmdClean === "on"
     ) {
         toggleEve(true);
         appendTermLine("[+] [OPTICAL FIBER TAP ARMED] Beam-splitter mirror activated on 1550nm line.", "term-alert");
@@ -538,41 +642,33 @@ function executeTermCommand(rawCmd) {
             triggerSettle();
         }, 120);
     } else if (
-        cmdLower === "disarm" ||
-        cmdLower === "stop" ||
-        cmdLower === "clean" ||
-        cmdLower === "reset" ||
-        cmdLower === "clear-tap" ||
-        cmdLower === "eve off" ||
-        cmdLower === "off"
+        cmdClean.includes("tamper")
     ) {
-        toggleEve(false);
-        toggleTamper(false);
-        appendTermLine("[*] [OPTICAL TAP DISENGAGED] Eve interceptor completely disarmed.", "term-success");
-        appendTermLine("[*] Quantum optical channel restored to clean state (0.0% QBER).", "term-success");
-        appendTermLine("[*] Transmitting clean settlement batch...", "term-info");
-        setTimeout(() => {
-            triggerSettle();
-        }, 120);
+        if (cmdClean.includes("off") || cmdClean.includes("stop") || cmdClean.includes("disable") || cmdClean.includes("disarm")) {
+            toggleTamper(false);
+            appendTermLine("[*] Ciphertext bit tampering disabled.", "term-info");
+        } else {
+            toggleTamper(true);
+            appendTermLine("[+] [CIPHERTEXT TAMPER ACTIVE] 1 byte flipped in AES-256-GCM encrypted payload.", "term-alert");
+            appendTermLine("[!] Dispatching tampered payload to Clearing House (GCM auth tag will fail)...", "term-warn");
+            setTimeout(() => {
+                triggerSettle();
+            }, 120);
+        }
     } else if (
-        cmdLower === "tamper" ||
-        cmdLower === "tamper on" ||
-        cmdLower === "tamper --on" ||
-        cmdLower === "tamper --send"
+        cmdClean.includes("settle") ||
+        cmdClean.includes("send") ||
+        cmdClean.includes("transmit") ||
+        cmdClean.includes("pay")
     ) {
-        toggleTamper(true);
-        appendTermLine("[+] [CIPHERTEXT TAMPER ACTIVE] 1 byte flipped in AES-256-GCM encrypted payload.", "term-alert");
-        appendTermLine("[!] Dispatching tampered payload to Clearing House (GCM auth tag will fail)...", "term-warn");
-        setTimeout(() => {
-            triggerSettle();
-        }, 120);
-    } else if (cmdLower === "tamper off" || cmdLower === "tamper --off") {
-        toggleTamper(false);
-        appendTermLine("[*] Ciphertext bit tampering disabled.", "term-info");
-    } else if (cmdLower === "settle" || cmdLower === "send" || cmdLower === "transmit" || cmdLower === "settle batch") {
         appendTermLine("[*] Dispatching settlement batch across interbank link...", "term-info");
         triggerSettle();
-    } else if (cmdLower === "status") {
+    } else if (
+        cmdClean.includes("status") ||
+        cmdClean.includes("info") ||
+        cmdClean.includes("stats") ||
+        cmdClean.includes("telemetry")
+    ) {
         appendTermLine("--- QUANTUM TAP TELEMETRY ---", "term-warn");
         appendTermLine(`  Node Role:        ${currentStatus.role ? currentStatus.role.toUpperCase() : "BANK A"}`, "term-info");
         appendTermLine(`  Peer Endpoint:    ${currentStatus.peer_host}:${currentStatus.peer_port}`, "term-info");
