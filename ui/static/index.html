@@ -145,9 +145,13 @@
 
                     <!-- ACTION BUTTONS -->
                     <div class="button-group">
-                        <button class="btn btn-primary" id="btn-settle" onclick="triggerSettle()">
+                        <button class="btn btn-primary" id="btn-manual-settle" onclick="openManualSettleModal()" title="Manually input authentic interbank RTGS batch in Indian Rupees (₹)">
+                            <span class="btn-symbol">📝</span>
+                            <span>ENTER MANUAL BATCH (₹)</span>
+                        </button>
+                        <button class="btn btn-secondary" id="btn-settle" onclick="triggerSettle()" title="Quick settle synthetic INR batch">
                             <span class="btn-symbol">&#9658;</span>
-                            <span>SETTLE BATCH NOW</span>
+                            <span>QUICK SETTLE (AUTO ₹)</span>
                         </button>
                         <button class="btn btn-secondary" id="btn-autostream" onclick="toggleAutoStream()">
                             <span class="btn-symbol">&#8635;</span>
@@ -396,6 +400,138 @@
         </div>
     </div>
 
-    <script src="/static/app.js?v=20260930_v120"></script>
+    <!-- MANUAL RTGS SETTLEMENT ENTRY MODAL (INR / RUPEES) -->
+    <div class="manual-settle-overlay hidden" id="manual-settle-modal" onclick="closeManualSettleModal(event)">
+        <div class="manual-settle-modal" onclick="event.stopPropagation()">
+            <div class="manual-settle-header">
+                <div class="manual-settle-title-wrap">
+                    <div class="manual-tag-row">
+                        <span class="manual-inr-tag">ISO 20022 &bull; pacs.008.001.09</span>
+                        <span class="manual-currency-tag font-mono">CURRENCY: INR (₹)</span>
+                    </div>
+                    <h3>RTGS / INTERBANK SETTLEMENT INITIATOR</h3>
+                </div>
+                <button class="btn-close-modal" onclick="closeManualSettleModal()">&times;</button>
+            </div>
+
+            <div class="manual-settle-body">
+                <!-- PRESET QUICK-FILL PRESETS -->
+                <div class="preset-strip">
+                    <span class="preset-label">QUICK TEMPLATES:</span>
+                    <button type="button" class="preset-btn" onclick="applyPresetBatch('liquidity')">₹50 Lakh &bull; Treasury Liquidity</button>
+                    <button type="button" class="preset-btn" onclick="applyPresetBatch('commercial')">₹2.5 Cr &bull; Corporate Trade</button>
+                    <button type="button" class="preset-btn" onclick="applyPresetBatch('repo')">₹10 Cr &bull; Overnight Repo</button>
+                    <button type="button" class="preset-btn" onclick="applyPresetBatch('custom_clear')">Clear Form</button>
+                </div>
+
+                <form id="manual-settlement-form" onsubmit="submitManualSettlement(event)" class="manual-form-grid">
+                    <!-- SECTION 1: DEBTOR (ORIGINATING BANK & SENDER) -->
+                    <div class="form-section-card">
+                        <div class="form-sec-head">
+                            <span class="sec-num">01</span>
+                            <span class="sec-title">DEBTOR / ORIGINATING INSTITUTION (BANK A)</span>
+                        </div>
+                        <div class="form-row-2">
+                            <div class="form-group">
+                                <label for="m-debtor-bank">Debtor Bank Name / IFSC</label>
+                                <select id="m-debtor-bank" class="form-input font-mono">
+                                    <option value="State Bank of India (SBININBBXXX)">State Bank of India (SBININBBXXX)</option>
+                                    <option value="HDFC Bank Ltd (HDFCINBBXXX)">HDFC Bank Ltd (HDFCINBBXXX)</option>
+                                    <option value="ICICI Bank Ltd (ICICINBBXXX)">ICICI Bank Ltd (ICICINBBXXX)</option>
+                                    <option value="Punjab National Bank (PUNBINBBXXX)">Punjab National Bank (PUNBINBBXXX)</option>
+                                    <option value="Bank of Baroda (BARBINBBXXX)">Bank of Baroda (BARBINBBXXX)</option>
+                                    <option value="Axis Bank Ltd (UTIBINBBXXX)">Axis Bank Ltd (UTIBINBBXXX)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="m-debtor-acc">Debtor Account / Virtual IBAN</label>
+                                <input type="text" id="m-debtor-acc" class="form-input font-mono" value="SBIN000189281201" placeholder="e.g. SBIN000189281201" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="m-debtor-name">Corporate Sender / Treasury Entity</label>
+                            <input type="text" id="m-debtor-name" class="form-input" value="Tata Consultancy Services Treasury Ltd" placeholder="e.g. Tata Consultancy Services Treasury Ltd" required>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 2: CREDITOR (BENEFICIARY BANK & RECEIVER) -->
+                    <div class="form-section-card">
+                        <div class="form-sec-head">
+                            <span class="sec-num">02</span>
+                            <span class="sec-title">CREDITOR / BENEFICIARY (CLEARING HOUSE)</span>
+                        </div>
+                        <div class="form-row-2">
+                            <div class="form-group">
+                                <label for="m-creditor-bank">Creditor Bank / Clearing Agent</label>
+                                <select id="m-creditor-bank" class="form-input font-mono">
+                                    <option value="Reserve Bank of India (RBISINBBXXX)">RBI Clearing House (RBISINBBXXX)</option>
+                                    <option value="CCIL Interbank Switch (CCILINBBXXX)">CCIL Net Clearing (CCILINBBXXX)</option>
+                                    <option value="ICICI Bank Settlement (ICICINBBXXX)">ICICI Bank Central Settlement</option>
+                                    <option value="State Bank of India (SBININBBXXX)">SBI Interbank Pool</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="m-creditor-acc">Beneficiary Settlement Account</label>
+                                <input type="text" id="m-creditor-acc" class="form-input font-mono" value="RBIS000992184001" placeholder="e.g. RBIS000992184001" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="m-creditor-name">Beneficiary Entity / Clearing Account</label>
+                            <input type="text" id="m-creditor-name" class="form-input" value="National Real-Time Gross Settlement Pool" placeholder="e.g. National RTGS Settlement Pool" required>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 3: SETTLEMENT AMOUNT & ISO METADATA -->
+                    <div class="form-section-card full-width">
+                        <div class="form-sec-head">
+                            <span class="sec-num">03</span>
+                            <span class="sec-title">PAYMENT INSTRUCTION &amp; AMOUNT IN RUPEES (₹)</span>
+                        </div>
+                        <div class="form-row-3">
+                            <div class="form-group">
+                                <label for="m-amount">Settlement Amount in ₹ (INR)</label>
+                                <div class="input-currency-wrapper">
+                                    <span class="currency-prefix font-mono">₹</span>
+                                    <input type="number" id="m-amount" class="form-input font-mono font-bold inr-amount-input" step="0.01" min="100.00" value="5000000.00" placeholder="5000000.00" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="m-settle-method">Settlement Scheme</label>
+                                <select id="m-settle-method" class="form-input font-mono">
+                                    <option value="RTGS">RTGS - Real Time Gross Settlement (Instant)</option>
+                                    <option value="NEFT">NEFT - National Electronic Funds Transfer</option>
+                                    <option value="CCIL">CCIL - Sovereign Debt &amp; Repo Netting</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="m-batch-ref">Batch Reference / UTR Number</label>
+                                <input type="text" id="m-batch-ref" class="form-input font-mono" value="" placeholder="Auto-generated if left blank">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="m-purpose">Payment Purpose / Remittance Information</label>
+                            <input type="text" id="m-purpose" class="form-input" value="INTERBANK LIQUIDITY CLEARING / SOVEREIGN DEBT POOL" placeholder="e.g. Interbank Liquidity Adjustment">
+                        </div>
+                    </div>
+
+                    <!-- FOOTER ACTIONS -->
+                    <div class="manual-form-footer">
+                        <div class="security-guarantee-note">
+                            <span class="lock-icon">🔒</span>
+                            <span>Payload will be encrypted with ephemeral <strong>BB84 QKD Key + ML-KEM-768 Shared Secret + AES-256-GCM</strong> with zero data exposure if compromised.</span>
+                        </div>
+                        <div class="manual-form-btns">
+                            <button type="button" class="btn btn-secondary" onclick="closeManualSettleModal()">CANCEL</button>
+                            <button type="submit" class="btn btn-primary btn-submit-inr" id="btn-submit-manual">
+                                <span>🔐 ENCRYPT WITH QKD &amp; SETTLE (₹)</span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js?v=20260930_v125"></script>
 </body>
 </html>

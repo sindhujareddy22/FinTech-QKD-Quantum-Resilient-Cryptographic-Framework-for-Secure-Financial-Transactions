@@ -328,9 +328,9 @@ function openDetailModal(index) {
             <div class="order-card">
                 <div class="order-parties">
                     <span class="order-names">${tx.debtor_name} &rarr; ${tx.creditor_name}</span>
-                    <span class="order-ref">IBAN: ${tx.debtor_iban} | Ref: ${tx.remittance_reference}</span>
+                    <span class="order-ref">A/C: ${tx.debtor_iban} | Ref: ${tx.remittance_reference}</span>
                 </div>
-                <div class="order-sum">$${tx.instructed_amount.toLocaleString(undefined, {minimumFractionDigits: 2})} ${tx.currency}</div>
+                <div class="order-sum">₹${tx.instructed_amount.toLocaleString(undefined, {minimumFractionDigits: 2})} ${tx.currency || 'INR'}</div>
             </div>
         `).join("");
     } else {
@@ -951,6 +951,142 @@ async function copySessionJson(sessionId) {
     }
 }
 
+// ==================== MANUAL BATCH SETTLEMENT CONTROLLER (INR / ₹) ====================
+
+function openManualSettleModal() {
+    const modal = document.getElementById("manual-settle-modal");
+    if (modal) {
+        modal.classList.remove("hidden");
+        const amtInput = document.getElementById("m-amount");
+        if (amtInput) amtInput.focus();
+    }
+}
+
+function closeManualSettleModal(event) {
+    if (event && event.target && !event.target.classList.contains("manual-settle-overlay") && !event.target.classList.contains("btn-close-modal") && event.target.tagName !== "BUTTON") {
+        return;
+    }
+    const modal = document.getElementById("manual-settle-modal");
+    if (modal) modal.classList.add("hidden");
+}
+
+function applyPresetBatch(type) {
+    const debtorBank = document.getElementById("m-debtor-bank");
+    const debtorAcc = document.getElementById("m-debtor-acc");
+    const debtorName = document.getElementById("m-debtor-name");
+    const creditorBank = document.getElementById("m-creditor-bank");
+    const creditorAcc = document.getElementById("m-creditor-acc");
+    const creditorName = document.getElementById("m-creditor-name");
+    const amount = document.getElementById("m-amount");
+    const method = document.getElementById("m-settle-method");
+    const purpose = document.getElementById("m-purpose");
+    const batchRef = document.getElementById("m-batch-ref");
+
+    const todayStr = new Date().toISOString().slice(0,10).replace(/-/g,'');
+
+    if (type === "liquidity") {
+        if (debtorBank) debtorBank.value = "State Bank of India (SBININBBXXX)";
+        if (debtorAcc) debtorAcc.value = "SBIN000109281201";
+        if (debtorName) debtorName.value = "Tata Consultancy Services Treasury Ltd";
+        if (creditorBank) creditorBank.value = "Reserve Bank of India (RBISINBBXXX)";
+        if (creditorAcc) creditorAcc.value = "RBIS000992184001";
+        if (creditorName) creditorName.value = "National Real-Time Gross Settlement Pool";
+        if (amount) amount.value = "5000000.00";
+        if (method) method.value = "RTGS";
+        if (purpose) purpose.value = "INTERBANK LIQUIDITY CLEARING / SOVEREIGN DEBT POOL";
+        if (batchRef) batchRef.value = `SETTLE-${todayStr}-LIQ50L`;
+    } else if (type === "commercial") {
+        if (debtorBank) debtorBank.value = "HDFC Bank Ltd (HDFCINBBXXX)";
+        if (debtorAcc) debtorAcc.value = "HDFC000045678901";
+        if (debtorName) debtorName.value = "Reliance Industries Commercial Treasury";
+        if (creditorBank) creditorBank.value = "ICICI Bank Settlement (ICICINBBXXX)";
+        if (creditorAcc) creditorAcc.value = "ICIC000078912301";
+        if (creditorName) creditorName.value = "Larsen & Toubro Infrastructure Trade Settlement";
+        if (amount) amount.value = "25000000.00";
+        if (method) method.value = "RTGS";
+        if (purpose) purpose.value = "CORPORATE COMMERCIAL MERCHANDISE EXPORT TRADE";
+        if (batchRef) batchRef.value = `SETTLE-${todayStr}-TRADE25CR`;
+    } else if (type === "repo") {
+        if (debtorBank) debtorBank.value = "State Bank of India (SBININBBXXX)";
+        if (debtorAcc) debtorAcc.value = "SBIN000998877661";
+        if (debtorName) debtorName.value = "Bank A Overnight Liquidity & Repo Desk";
+        if (creditorBank) creditorBank.value = "CCIL Interbank Switch (CCILINBBXXX)";
+        if (creditorAcc) creditorAcc.value = "CCIL000887766551";
+        if (creditorName) creditorName.value = "CCIL Triparty Collateralized Repo Netting Pool";
+        if (amount) amount.value = "100000000.00";
+        if (method) method.value = "CCIL";
+        if (purpose) purpose.value = "TREASURY OVERNIGHT TRIPARTY REPO CLEARING";
+        if (batchRef) batchRef.value = `SETTLE-${todayStr}-REPO10CR`;
+    } else if (type === "custom_clear") {
+        if (amount) amount.value = "";
+        if (batchRef) batchRef.value = "";
+        if (purpose) purpose.value = "";
+    }
+}
+
+async function submitManualSettlement(event) {
+    if (event) event.preventDefault();
+
+    const debtorBank = document.getElementById("m-debtor-bank").value;
+    const debtorAcc = document.getElementById("m-debtor-acc").value;
+    const debtorName = document.getElementById("m-debtor-name").value;
+    const creditorBank = document.getElementById("m-creditor-bank").value;
+    const creditorAcc = document.getElementById("m-creditor-acc").value;
+    const creditorName = document.getElementById("m-creditor-name").value;
+    const amountVal = parseFloat(document.getElementById("m-amount").value || "0");
+    const method = document.getElementById("m-settle-method").value;
+    const purpose = document.getElementById("m-purpose").value;
+    const batchRef = document.getElementById("m-batch-ref").value;
+
+    if (!amountVal || amountVal <= 0) {
+        alert("Please enter a valid settlement amount in Rupees (₹).");
+        return;
+    }
+
+    const payload = {
+        debtor_bank: debtorBank,
+        debtor_acc: debtorAcc,
+        debtor_name: debtorName,
+        creditor_bank: creditorBank,
+        creditor_acc: creditorAcc,
+        creditor_name: creditorName,
+        amount: amountVal,
+        settlement_method: method,
+        purpose: purpose,
+        batch_ref: batchRef,
+        currency: "INR"
+    };
+
+    const submitBtn = document.getElementById("btn-submit-manual");
+    const originalText = submitBtn ? submitBtn.innerHTML : "";
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = "<span>⏳ ENCRYPTING WITH QKD & TRANSMITTING...</span>";
+    }
+
+    try {
+        const res = await fetch("/api/settle", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || "Settlement failed");
+        }
+        // Close modal
+        const modal = document.getElementById("manual-settle-modal");
+        if (modal) modal.classList.add("hidden");
+    } catch (err) {
+        alert("Error executing settlement: " + err.message);
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
+    }
+}
+
 // Expose functions globally for inline HTML event handlers
 window.openEveTerminal = openEveTerminal;
 window.closeEveTerminal = closeEveTerminal;
@@ -976,6 +1112,12 @@ window.loadSessionLogs = loadSessionLogs;
 window.viewSessionDetail = viewSessionDetail;
 window.clearAllSessionLogs = clearAllSessionLogs;
 window.copySessionJson = copySessionJson;
+
+// Manual Settle Modal Exports
+window.openManualSettleModal = openManualSettleModal;
+window.closeManualSettleModal = closeManualSettleModal;
+window.applyPresetBatch = applyPresetBatch;
+window.submitManualSettlement = submitManualSettlement;
 
 // Document Ready Setup
 window.addEventListener("DOMContentLoaded", () => {

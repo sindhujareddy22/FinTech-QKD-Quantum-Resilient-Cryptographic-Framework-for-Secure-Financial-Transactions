@@ -28,7 +28,7 @@ from eve.interceptor import Eavesdropper
 from crypto.aes_gcm import AES256GCMCipher, EncryptedPayload, TamperDetectedError
 from pqc.kyber_hybrid import PQCKyberKEM, HybridKeyCombiner, PQCKeyPair
 from auth.hmac_auth import HMACAuthenticator, AuthenticationError
-from transactions.generator import generate_synthetic_settlement_batch, SettlementBatch
+from transactions.generator import generate_synthetic_settlement_batch, create_manual_settlement_batch, SettlementBatch
 from storage.session_db import session_db
 
 
@@ -206,11 +206,11 @@ def create_node_app(role: str, host: str, port: int, peer_host: str, peer_port: 
     # ---------------- OPERATOR REST ENDPOINTS (TERMINAL & UI) ----------------
 
     @app.post("/api/settle")
-    async def api_settle():
-        """Triggers a settlement round on Bank A node."""
+    async def api_settle(payload: Optional[Dict[str, Any]] = None):
+        """Triggers a settlement round on Bank A node (accepts optional manual batch data)."""
         if state.role != "bank":
             raise HTTPException(status_code=400, detail="Only Bank node can initiate settlements.")
-        asyncio.create_task(run_settlement_round(state))
+        asyncio.create_task(run_settlement_round(state, manual_batch_data=payload))
         return {"status": "SETTLEMENT_INITIATED"}
 
     @app.post("/api/eve/toggle")
@@ -427,8 +427,8 @@ def create_node_app(role: str, host: str, port: int, peer_host: str, peer_port: 
                 "id": str(uuid.uuid4())[:8],
                 "time": time.strftime("%H:%M:%S"),
                 "batch_id": batch_data.get("batch_id"),
-                "amount": f"${batch_data.get('total_amount', 0):,.2f}",
-                "currency": batch_data.get("currency", "USD"),
+                "amount": f"₹{batch_data.get('total_amount', 0):,.2f}",
+                "currency": batch_data.get("currency", "INR"),
                 "tx_count": batch_data.get("transaction_count", 0),
                 "status": "SETTLED",
                 "qber": f"{state.latest_qber * 100:.1f}%",
@@ -445,7 +445,7 @@ def create_node_app(role: str, host: str, port: int, peer_host: str, peer_port: 
                 status="SETTLED",
                 details=batch_data
             )
-            print(f"\n[✓ SETTLEMENT CONFIRMED - CLEARING] Batch {batch_data.get('batch_id')} decrypted & verified | Amount: ${batch_data.get('total_amount', 0):,.2f}")
+            print(f"\n[✓ SETTLEMENT CONFIRMED - CLEARING] Batch {batch_data.get('batch_id')} decrypted & verified | Amount: ₹{batch_data.get('total_amount', 0):,.2f}")
             await state.broadcast_ui_update()
             return {"status": "SETTLED", "batch_id": batch_data.get("batch_id")}
 
@@ -458,8 +458,8 @@ def create_node_app(role: str, host: str, port: int, peer_host: str, peer_port: 
                 "id": str(uuid.uuid4())[:8],
                 "time": time.strftime("%H:%M:%S"),
                 "batch_id": "REJECTED-TAMPERED",
-                "amount": "$0.00",
-                "currency": "USD",
+                "amount": "₹0.00",
+                "currency": "INR",
                 "tx_count": 0,
                 "status": "BLOCKED",
                 "qber": f"{state.latest_qber * 100:.1f}%",
@@ -483,9 +483,9 @@ def create_node_app(role: str, host: str, port: int, peer_host: str, peer_port: 
     return app
 
 
-async def run_settlement_round(state: NodeState):
+async def run_settlement_round(state: NodeState, manual_batch_data: Optional[Dict[str, Any]] = None):
     """
-    Bank A logic: Executes one full settlement round with per-settlement re-keying.
+    Bank A logic: Executes one full settlement round with per-settlement re-keying (supports manual & synthetic INR batches).
     """
     if state.role != "bank":
         return
@@ -506,8 +506,8 @@ async def run_settlement_round(state: NodeState):
                     "id": str(uuid.uuid4())[:8],
                     "time": time.strftime("%H:%M:%S"),
                     "batch_id": "OFFLINE-PEER",
-                    "amount": "$0.00",
-                    "currency": "USD",
+                    "amount": "₹0.00",
+                    "currency": "INR",
                     "tx_count": 0,
                     "status": "BLOCKED",
                     "qber": "0.0%",
@@ -556,8 +556,8 @@ async def run_settlement_round(state: NodeState):
                     "id": str(uuid.uuid4())[:8],
                     "time": time.strftime("%H:%M:%S"),
                     "batch_id": f"BLOCKED-QBER-{int(qber*100)}PCT",
-                    "amount": "$0.00",
-                    "currency": "USD",
+                    "amount": "₹0.00",
+                    "currency": "INR",
                     "tx_count": 0,
                     "status": "BLOCKED",
                     "qber": f"{qber * 100:.1f}%",
@@ -600,8 +600,24 @@ async def run_settlement_round(state: NodeState):
                 pqc_shared_secret=pqc_bundle.shared_secret
             )
 
-            # 5. Generate ISO 20022 Batch & Encrypt with AES-256-GCM
-            batch = generate_synthetic_settlement_batch()
+            # 5. Generate ISO 20022 Batch (Manual or Synthetic) & Encrypt with AES-256-GCM
+            if manual_batch_data and any(manual_batch_data.values()):
+                batch = create_manual_settlement_batch(
+                    debtor_bank=manual_batch_data.get("debtor_bank", "State Bank of India"),
+                    debtor_name=manual_batch_data.get("debtor_name", "Corporate Treasury"),
+                    debtor_acc=manual_batch_data.get("debtor_acc", "SBIN0001092182"),
+                    creditor_bank=manual_batch_data.get("creditor_bank", "Reserve Bank of India"),
+                    creditor_name=manual_batch_data.get("creditor_name", "Clearing Pool"),
+                    creditor_acc=manual_batch_data.get("creditor_acc", "RBIS000991823"),
+                    amount=float(manual_batch_data.get("amount", 1000000.0)),
+                    purpose=manual_batch_data.get("purpose", "RTGS Interbank Settlement"),
+                    batch_ref=manual_batch_data.get("batch_ref"),
+                    currency="INR",
+                    additional_txns=manual_batch_data.get("additional_txns")
+                )
+            else:
+                batch = generate_synthetic_settlement_batch(currency="INR")
+
             batch_bytes = json.dumps(batch.to_dict()).encode('utf-8')
             enc_payload = AES256GCMCipher.encrypt(batch_bytes, session_key)
 
@@ -629,12 +645,12 @@ async def run_settlement_round(state: NodeState):
                     "id": str(uuid.uuid4())[:8],
                     "time": time.strftime("%H:%M:%S"),
                     "batch_id": batch.batch_id,
-                    "amount": f"${batch.total_amount:,.2f}",
+                    "amount": f"₹{batch.total_amount:,.2f}",
                     "currency": batch.currency,
                     "tx_count": batch.transaction_count,
                     "status": "SETTLED",
                     "qber": f"{qber * 100:.1f}%",
-                    "reason": "Quantum-Resilient Settlement Confirmed",
+                    "reason": "Quantum-Resilient Settlement Confirmed (RTGS INR)",
                     "batch_detail": batch.to_dict(),
                 }
                 state.settlement_logs.insert(0, log_entry)
@@ -647,7 +663,7 @@ async def run_settlement_round(state: NodeState):
                     status="SETTLED",
                     details=batch.to_dict()
                 )
-                print(f"\n[✓ SETTLEMENT CONFIRMED - BANK A] Batch {batch.batch_id} | Amount: ${batch.total_amount:,.2f} | Tx: {batch.transaction_count} | QBER: {qber*100:.1f}% (Clean)")
+                print(f"\n[✓ SETTLEMENT CONFIRMED - BANK A] Batch {batch.batch_id} | Amount: ₹{batch.total_amount:,.2f} | Tx: {batch.transaction_count} | QBER: {qber*100:.1f}% (Clean)")
             else:
                 state.blocked_count += 1
                 state.channel_secure = False
@@ -656,7 +672,7 @@ async def run_settlement_round(state: NodeState):
                     "id": str(uuid.uuid4())[:8],
                     "time": time.strftime("%H:%M:%S"),
                     "batch_id": batch.batch_id,
-                    "amount": f"${batch.total_amount:,.2f}",
+                    "amount": f"₹{batch.total_amount:,.2f}",
                     "currency": batch.currency,
                     "tx_count": batch.transaction_count,
                     "status": "BLOCKED",
@@ -686,8 +702,8 @@ async def run_settlement_round(state: NodeState):
                 "id": str(uuid.uuid4())[:8],
                 "time": time.strftime("%H:%M:%S"),
                 "batch_id": "ERROR",
-                "amount": "$0.00",
-                "currency": "USD",
+                "amount": "₹0.00",
+                "currency": "INR",
                 "tx_count": 0,
                 "status": "BLOCKED",
                 "qber": f"{state.latest_qber * 100:.1f}%",
