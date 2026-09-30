@@ -545,6 +545,16 @@ function applyLocalDisarm() {
     currentStatus.latest_qber = 0.0;
 }
 
+function quickDisconnectEve() {
+    applyLocalDisarm();
+    toggleEve(false);
+    toggleTamper(false);
+    fetch("/api/eve/disconnect", { method: "POST" }).catch(() => {});
+    fetch("/api/channel/reset", { method: "POST" }).catch(() => {});
+    appendTermLine("[🔌] [EVE DISCONNECTED] Optical fiber tap physically removed from 1550nm channel.", "term-success");
+    appendTermLine("[✓] Threat alerts cleared. Quantum optical link is now 100% SECURE (0.0% QBER).", "term-success");
+}
+
 function executeTermCommand(rawCmd) {
     const cmd = rawCmd.trim();
     const cmdLower = cmd.toLowerCase();
@@ -719,6 +729,7 @@ window.closeModal = closeModal;
 window.copyModalJson = copyModalJson;
 window.setFilter = setFilter;
 window.filterLedger = filterLedger;
+window.quickDisconnectEve = quickDisconnectEve;
 
 // Document Ready Setup
 window.addEventListener("DOMContentLoaded", () => {

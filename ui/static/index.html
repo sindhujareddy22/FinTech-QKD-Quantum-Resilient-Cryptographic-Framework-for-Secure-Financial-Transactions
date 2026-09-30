@@ -59,6 +59,7 @@
                 </div>
             </div>
             <div class="threat-meta">
+                <button class="btn-banner-disconnect" onclick="quickDisconnectEve()">🔌 DISCONNECT EVE</button>
                 <span class="threat-badge">ZERO DATA EXPOSED</span>
                 <span class="threat-action">TRANSMISSION HALTED</span>
             </div>
@@ -170,6 +171,9 @@
                             <button class="btn-hacker-term" onclick="openEveTerminal()">
                                 <span class="hacker-term-icon">&gt;_</span>
                                 <span>OPEN EVE COMMAND TERMINAL</span>
+                            </button>
+                            <button class="btn-quick-disconnect" id="btn-card-disconnect" onclick="quickDisconnectEve()" title="Instantly sever Eve's wiretap">
+                                <span>🔌 DISCONNECT EVE</span>
                             </button>
                         </div>
                     </div>
@@ -349,6 +353,17 @@
         </div>
     </div>
 
-    <script src="/static/app.js?v=20260930_v105"></script>
+    <!-- FLOATING QUICK DOCK (BOTTOM-RIGHT) -->
+    <div class="floating-quick-dock" id="floating-dock">
+        <button class="btn-dock-term" onclick="openEveTerminal()">
+            <span class="dock-icon">&gt;_</span>
+            <span>EVE TERMINAL</span>
+        </button>
+        <button class="btn-dock-disconnect" id="btn-dock-disconnect" onclick="quickDisconnectEve()">
+            <span>🔌 DISCONNECT EVE</span>
+        </button>
+    </div>
+
+    <script src="/static/app.js?v=20260930_v115"></script>
 </body>
 </html>
