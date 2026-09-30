@@ -37,6 +37,10 @@
                     <span class="t-label">CRYPTO SUITE</span>
                     <span class="t-val text-cyan font-mono">QKD + ML-KEM + AES-GCM</span>
                 </div>
+                <button class="btn-logs-launcher" id="btn-session-logs" onclick="openSessionLogsModal()" title="View SQLite Session Histories & Forensic Logs">
+                    <span class="logs-icon">📋</span>
+                    <span>SESSION LOGS</span>
+                </button>
                 <div class="connection-pill disconnected" id="peer-badge">
                     <span class="status-dot"></span>
                     <span id="peer-status-text">CONNECTING</span>
@@ -348,6 +352,50 @@
         </div>
     </div>
 
-    <script src="/static/app.js?v=20260930_v116"></script>
+    <!-- SESSION AUDIT & DATABASE LOGS MODAL -->
+    <div class="session-modal-overlay hidden" id="session-logs-modal" onclick="closeSessionLogsModal(event)">
+        <div class="session-modal" onclick="event.stopPropagation()">
+            <div class="session-modal-header">
+                <div class="session-modal-title-wrap">
+                    <div class="session-tag-row">
+                        <span class="session-db-tag">SQLITE &bull; PERSISTENT AUDIT VAULT</span>
+                        <span class="session-active-pill" id="session-modal-active-id">ACTIVE SESSION</span>
+                    </div>
+                    <h3>SESSION AUDIT &amp; FORENSIC LOGS</h3>
+                </div>
+                <div class="session-modal-actions">
+                    <button class="btn-session-action btn-refresh" onclick="loadSessionLogs()" title="Refresh latest data">🔄 REFRESH</button>
+                    <button class="btn-session-action btn-clear" onclick="clearAllSessionLogs()" title="Clear SQLite history">🗑️ CLEAR</button>
+                    <button class="btn-close-modal" onclick="closeSessionLogsModal()">&times;</button>
+                </div>
+            </div>
+
+            <div class="session-modal-body">
+                <!-- SESSIONS SPLIT VIEW: LEFT SESSIONS LIST, RIGHT SELECTED SESSION SUMMARY -->
+                <div class="sessions-split-layout">
+                    <!-- SESSIONS LIST -->
+                    <div class="sessions-sidebar">
+                        <div class="sessions-sidebar-head">
+                            <span class="sessions-sidebar-title">RECORDED SESSIONS</span>
+                            <span class="sessions-count font-mono" id="sessions-total-count">0 SESSIONS</span>
+                        </div>
+                        <div class="sessions-list-container" id="sessions-list">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- SELECTED SESSION DETAIL VIEW -->
+                    <div class="session-detail-view" id="session-detail-container">
+                        <div class="session-empty-state">
+                            <span class="empty-icon">📂</span>
+                            <p>Select a session on the left to view its cryptographic summary, key exchange statistics, and transaction audit timeline.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js?v=20260930_v120"></script>
 </body>
 </html>

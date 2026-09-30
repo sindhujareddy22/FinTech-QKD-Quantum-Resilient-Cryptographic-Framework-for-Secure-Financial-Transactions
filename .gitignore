@@ -33,3 +33,6 @@ htmlcov/
 .DS_Store
 .vscode/
 .idea/
+
+# Local Database & Cache
+data/*.db

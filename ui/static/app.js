@@ -12,6 +12,11 @@ let currentFilter = "ALL";
 let qberHistory = [];
 let lastProcessedLogId = null;
 
+// Session Logs State
+let currentActiveSessionId = null;
+let selectedSessionId = null;
+let cachedSessionsList = [];
+
 // Eve Terminal State
 let terminalHistory = [];
 let terminalHistoryIndex = -1;
@@ -713,6 +718,239 @@ function onNewSettlementLog(log) {
     }
 }
 
+// ==================== SESSION AUDIT & DATABASE LOGS CONTROLLER ====================
+
+async function openSessionLogsModal() {
+    const modal = document.getElementById("session-logs-modal");
+    if (modal) {
+        modal.classList.remove("hidden");
+        await loadSessionLogs();
+    }
+}
+
+function closeSessionLogsModal(event) {
+    if (event && event.target && !event.target.classList.contains("session-modal-overlay") && !event.target.classList.contains("btn-close-modal")) {
+        return;
+    }
+    const modal = document.getElementById("session-logs-modal");
+    if (modal) modal.classList.add("hidden");
+}
+
+async function loadSessionLogs() {
+    try {
+        const res = await fetch("/api/sessions");
+        if (!res.ok) throw new Error("Failed to fetch session logs");
+        const data = await res.json();
+        cachedSessionsList = data.sessions || [];
+        renderSessionsList(cachedSessionsList);
+
+        // Auto select current or first session
+        if (cachedSessionsList.length > 0) {
+            const targetId = selectedSessionId || currentActiveSessionId || cachedSessionsList[0].session_id;
+            await viewSessionDetail(targetId);
+        } else {
+            const container = document.getElementById("session-detail-container");
+            if (container) {
+                container.innerHTML = `
+                    <div class="session-empty-state">
+                        <span class="empty-icon">📂</span>
+                        <p>No recorded sessions found in database.</p>
+                    </div>
+                `;
+            }
+        }
+    } catch (err) {
+        console.error("Error loading session logs:", err);
+    }
+}
+
+function renderSessionsList(sessions) {
+    const container = document.getElementById("sessions-list");
+    const countEl = document.getElementById("sessions-total-count");
+    if (countEl) countEl.textContent = `${sessions.length} SESSIONS`;
+    if (!container) return;
+
+    if (sessions.length === 0) {
+        container.innerHTML = `<div style="text-align: center; color: #64748b; padding: 20px; font-size: 12px;">No sessions recorded yet.</div>`;
+        return;
+    }
+
+    container.innerHTML = sessions.map(s => {
+        const isSelected = (selectedSessionId === s.session_id) ? "active-selected" : "";
+        const statusClass = (s.status || "ACTIVE").toLowerCase();
+        const dateStr = s.start_time ? new Date(s.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "N/A";
+        
+        return `
+            <div class="session-list-card ${isSelected}" onclick="viewSessionDetail('${s.session_id}')" id="session-card-${s.session_id}">
+                <div class="session-list-top">
+                    <span class="session-id-badge">${s.session_id}</span>
+                    <span class="session-status-tag ${statusClass}">${s.status || 'ACTIVE'}</span>
+                </div>
+                <div class="session-list-meta">
+                    <span>${s.node_name || s.role} &bull; ${dateStr}</span>
+                    <span class="session-list-vol">$${(s.total_volume_usd || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                </div>
+                <div class="session-list-counts">
+                    <span>✓ ${s.total_batches_settled || 0} Settled</span>
+                    <span>⛔ ${s.total_batches_blocked || 0} Blocked</span>
+                    <span>⚠️ ${s.threats_detected || 0} Threats</span>
+                </div>
+            </div>
+        `;
+    }).join("");
+}
+
+async function viewSessionDetail(sessionId) {
+    selectedSessionId = sessionId;
+    
+    // Highlight in list
+    document.querySelectorAll(".session-list-card").forEach(el => el.classList.remove("active-selected"));
+    const activeEl = document.getElementById(`session-card-${sessionId}`);
+    if (activeEl) activeEl.classList.add("active-selected");
+
+    const container = document.getElementById("session-detail-container");
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="session-empty-state">
+            <span class="empty-icon">⏳</span>
+            <p>Loading session audit trace from SQLite...</p>
+        </div>
+    `;
+
+    try {
+        const res = await fetch(`/api/sessions/${sessionId}`);
+        if (!res.ok) throw new Error("Failed to load session details");
+        const s = await res.json();
+        
+        const startTimeStr = s.start_time ? new Date(s.start_time).toLocaleString() : "N/A";
+        const endTimeStr = s.end_time ? new Date(s.end_time).toLocaleString() : "Ongoing";
+        const events = s.events || [];
+
+        container.innerHTML = `
+            <!-- HEADER INFO CARD -->
+            <div class="session-detail-header-card">
+                <div class="session-dh-left">
+                    <div class="session-dh-title">${s.session_id}</div>
+                    <div class="session-dh-sub">
+                        <span><strong>Node:</strong> ${s.node_name} (${s.host}:${s.port})</span>
+                        <span><strong>Peer:</strong> ${s.peer_host}:${s.peer_port}</span>
+                        <span><strong>Started:</strong> ${startTimeStr}</span>
+                    </div>
+                </div>
+                <div>
+                    <button class="btn-session-action btn-refresh" onclick="copySessionJson('${s.session_id}')">📋 COPY AUDIT JSON</button>
+                </div>
+            </div>
+
+            <!-- METRICS SUMMARY 4-GRID -->
+            <div class="session-metrics-grid">
+                <div class="session-metric-card">
+                    <span class="session-mc-label">TOTAL SETTLED VOLUME</span>
+                    <span class="session-mc-val text-cyan">$${(s.total_volume_usd || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                </div>
+                <div class="session-metric-card">
+                    <span class="session-mc-label">SETTLED BATCHES</span>
+                    <span class="session-mc-val text-green">${s.total_batches_settled || 0}</span>
+                </div>
+                <div class="session-metric-card">
+                    <span class="session-mc-label">BLOCKED BATCHES</span>
+                    <span class="session-mc-val text-red">${s.total_batches_blocked || 0}</span>
+                </div>
+                <div class="session-metric-card">
+                    <span class="session-mc-label">SECURITY THREATS MITIGATED</span>
+                    <span class="session-mc-val text-indigo">${s.threats_detected || 0} / ${s.threats_disarmed || 0}</span>
+                </div>
+            </div>
+
+            <!-- FORENSIC EVENTS TIMELINE -->
+            <div class="session-events-section">
+                <div class="session-events-head">
+                    <span>FORENSIC EVENT AUDIT TRAIL (${events.length} EVENTS)</span>
+                    <span class="font-mono text-cyan">${s.crypto_suite || 'QKD + ML-KEM + AES-GCM'}</span>
+                </div>
+                <div class="session-table-wrap">
+                    <table class="session-events-table">
+                        <thead>
+                            <tr>
+                                <th>TIME</th>
+                                <th>EVENT TYPE</th>
+                                <th>BATCH / IDENTIFIER</th>
+                                <th>AMOUNT (USD)</th>
+                                <th>QBER</th>
+                                <th>STATUS</th>
+                                <th>DETAILS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${events.length === 0 ? `
+                                <tr>
+                                    <td colspan="7" style="text-align:center; color:#64748b; padding:20px;">No individual events logged for this session yet.</td>
+                                </tr>
+                            ` : events.map(ev => {
+                                const evTime = ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "N/A";
+                                let typeClass = "settle";
+                                if (ev.event_type.includes("BLOCK")) typeClass = "block";
+                                else if (ev.event_type.includes("ATTACK")) typeClass = "attack";
+                                else if (ev.event_type.includes("DISARM")) typeClass = "disarm";
+
+                                const amtStr = ev.amount_usd > 0 ? `$${ev.amount_usd.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : "-";
+                                const qberStr = ev.qber > 0 ? `${(ev.qber * 100).toFixed(1)}%` : "0.0%";
+                                const detStr = typeof ev.details === "object" ? JSON.stringify(ev.details) : (ev.details || "-");
+
+                                return `
+                                    <tr>
+                                        <td class="font-mono text-muted">${evTime}</td>
+                                        <td><span class="ev-type-pill ${typeClass}">${ev.event_type}</span></td>
+                                        <td class="font-mono font-bold">${ev.batch_id || "-"}</td>
+                                        <td class="font-mono text-cyan">${amtStr}</td>
+                                        <td class="font-mono">${qberStr}</td>
+                                        <td><span class="font-bold">${ev.status || "-"}</span></td>
+                                        <td class="text-muted" style="max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title='${detStr}'>${detStr}</td>
+                                    </tr>
+                                `;
+                            }).join("")}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    } catch (err) {
+        container.innerHTML = `
+            <div class="session-empty-state">
+                <span class="empty-icon text-red">⚠️</span>
+                <p>Failed to load session details: ${err.message}</p>
+            </div>
+        `;
+    }
+}
+
+async function clearAllSessionLogs() {
+    if (!confirm("Are you sure you want to clear all session audit histories from the SQLite database?")) {
+        return;
+    }
+    try {
+        const res = await fetch("/api/sessions", { method: "DELETE" });
+        if (!res.ok) throw new Error("Failed to clear sessions");
+        selectedSessionId = null;
+        await loadSessionLogs();
+    } catch (err) {
+        alert("Error clearing session logs: " + err.message);
+    }
+}
+
+async function copySessionJson(sessionId) {
+    try {
+        const res = await fetch(`/api/sessions/${sessionId}`);
+        if (!res.ok) throw new Error("Failed to fetch session");
+        const data = await res.json();
+        await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+        alert("Session Audit JSON copied to clipboard!");
+    } catch (err) {
+        alert("Could not copy JSON: " + err.message);
+    }
+}
+
 // Expose functions globally for inline HTML event handlers
 window.openEveTerminal = openEveTerminal;
 window.closeEveTerminal = closeEveTerminal;
@@ -730,6 +968,14 @@ window.copyModalJson = copyModalJson;
 window.setFilter = setFilter;
 window.filterLedger = filterLedger;
 window.quickDisconnectEve = quickDisconnectEve;
+
+// Session Logs Modal Exports
+window.openSessionLogsModal = openSessionLogsModal;
+window.closeSessionLogsModal = closeSessionLogsModal;
+window.loadSessionLogs = loadSessionLogs;
+window.viewSessionDetail = viewSessionDetail;
+window.clearAllSessionLogs = clearAllSessionLogs;
+window.copySessionJson = copySessionJson;
 
 // Document Ready Setup
 window.addEventListener("DOMContentLoaded", () => {

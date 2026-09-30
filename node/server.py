@@ -29,6 +29,7 @@ from crypto.aes_gcm import AES256GCMCipher, EncryptedPayload, TamperDetectedErro
 from pqc.kyber_hybrid import PQCKyberKEM, HybridKeyCombiner, PQCKeyPair
 from auth.hmac_auth import HMACAuthenticator, AuthenticationError
 from transactions.generator import generate_synthetic_settlement_batch, SettlementBatch
+from storage.session_db import session_db
 
 
 class NodeState:
@@ -40,6 +41,15 @@ class NodeState:
         self.peer_host = peer_host
         self.peer_port = peer_port
         self.peer_url = f"http://{peer_host}:{peer_port}"
+        
+        # Persistent SQLite Session ID
+        self.session_id = session_db.create_or_get_session(
+            role=self.role,
+            host=self.host,
+            port=self.port,
+            peer_host=self.peer_host,
+            peer_port=self.peer_port
+        )
         
         # Security & Channel state
         self.channel_secure = True
@@ -76,6 +86,7 @@ class NodeState:
     def get_status_dict(self) -> Dict[str, Any]:
         """Snapshot of node status for UI dashboard."""
         return {
+            "session_id": self.session_id,
             "role": self.role,
             "node_name": "BANK A (SENDER)" if self.role == "bank" else "CLEARING HOUSE (RECEIVER)",
             "host": self.host,
@@ -211,8 +222,11 @@ def create_node_app(role: str, host: str, port: int, peer_host: str, peer_port: 
             state.channel_secure = True
             state.alert_message = None
             state.latest_qber = 0.0
+            session_db.record_event(state.session_id, "EVE_DISARM", qber=0.0, status="SECURED", details={"action": "Eve disarmed"})
             if state.role == "bank":
                 asyncio.create_task(notify_peer_disconnect(state.peer_url))
+        else:
+            session_db.record_event(state.session_id, "EVE_ATTACK", qber=state.latest_qber, status="COMPROMISED", details={"action": "Eve quantum wiretap armed"})
         print(f"\n[EVE INTERCEPTOR] Wiretap {'ARMED (ATTACK MODE)' if is_active else 'DISARMED (CLEAN CHANNEL / SECURED)'}")
         await state.broadcast_ui_update()
         return {"eve_active": is_active}
@@ -225,6 +239,7 @@ def create_node_app(role: str, host: str, port: int, peer_host: str, peer_port: 
         state.channel_secure = True
         state.alert_message = None
         state.latest_qber = 0.0
+        session_db.record_event(state.session_id, "EVE_DISARM", qber=0.0, status="SECURED", details={"action": "Eve wiretap disconnected"})
         if state.role == "bank":
             asyncio.create_task(notify_peer_disconnect(state.peer_url))
         print("\n[🔌 EVE DISCONNECTED] Quantum wiretap completely disconnected and alerts cleared.")
@@ -237,6 +252,7 @@ def create_node_app(role: str, host: str, port: int, peer_host: str, peer_port: 
         state.channel_secure = True
         state.alert_message = None
         state.latest_qber = 0.0
+        session_db.record_event(state.session_id, "EVE_DISARM", qber=0.0, status="SECURED", details={"action": "Channel reset"})
         await state.broadcast_ui_update()
         return {"channel_secure": True, "alert_message": None}
 
@@ -248,8 +264,39 @@ def create_node_app(role: str, host: str, port: int, peer_host: str, peer_port: 
         if not is_tamper and not state.eve.is_active:
             state.channel_secure = True
             state.alert_message = None
+            session_db.record_event(state.session_id, "EVE_DISARM", qber=0.0, status="SECURED", details={"action": "Ciphertext tampering disarmed"})
+        else:
+            session_db.record_event(state.session_id, "EVE_ATTACK", qber=state.latest_qber, status="COMPROMISED", details={"action": "Ciphertext bit-flipping armed"})
         await state.broadcast_ui_update()
         return {"tamper_active": is_tamper}
+
+    # ---------------- SESSION AUDIT & DATABASE ENDPOINTS ----------------
+
+    @app.get("/api/sessions")
+    async def get_all_sessions():
+        """Returns list of all session summaries from SQLite database."""
+        return {"sessions": session_db.get_all_sessions(limit=100)}
+
+    @app.get("/api/sessions/{session_id}")
+    async def get_session_by_id(session_id: str):
+        """Returns full session details including granular forensic events."""
+        details = session_db.get_session_details(session_id)
+        if not details:
+            raise HTTPException(status_code=404, detail="Session not found.")
+        return details
+
+    @app.delete("/api/sessions")
+    async def clear_all_sessions():
+        """Clears all session histories in SQLite and starts a clean session."""
+        session_db.clear_all()
+        state.session_id = session_db.create_or_get_session(
+            role=state.role,
+            host=state.host,
+            port=state.port,
+            peer_host=state.peer_host,
+            peer_port=state.peer_port
+        )
+        return {"status": "SESSIONS_CLEARED", "new_session_id": state.session_id}
 
     # ---------------- INTER-NODE PROTOCOL ENDPOINTS ----------------
 
@@ -389,6 +436,15 @@ def create_node_app(role: str, host: str, port: int, peer_host: str, peer_port: 
                 "batch_detail": batch_data,
             }
             state.settlement_logs.insert(0, log_entry)
+            session_db.record_event(
+                session_id=state.session_id,
+                event_type="SETTLEMENT_SUCCESS",
+                batch_id=batch_data.get("batch_id"),
+                amount_usd=float(batch_data.get("total_amount", 0)),
+                qber=state.latest_qber,
+                status="SETTLED",
+                details=batch_data
+            )
             print(f"\n[✓ SETTLEMENT CONFIRMED - CLEARING] Batch {batch_data.get('batch_id')} decrypted & verified | Amount: ${batch_data.get('total_amount', 0):,.2f}")
             await state.broadcast_ui_update()
             return {"status": "SETTLED", "batch_id": batch_data.get("batch_id")}
@@ -411,6 +467,15 @@ def create_node_app(role: str, host: str, port: int, peer_host: str, peer_port: 
                 "batch_detail": None,
             }
             state.settlement_logs.insert(0, log_entry)
+            session_db.record_event(
+                session_id=state.session_id,
+                event_type="SETTLEMENT_BLOCKED",
+                batch_id="REJECTED-TAMPERED",
+                amount_usd=0.0,
+                qber=state.latest_qber,
+                status="BLOCKED",
+                details={"error": str(exc)}
+            )
             print(f"\n[⛔ PAYLOAD BLOCKED - CLEARING] Tamper / Breach detected: {str(exc)}")
             await state.broadcast_ui_update()
             raise HTTPException(status_code=400, detail=str(exc))
@@ -500,6 +565,15 @@ async def run_settlement_round(state: NodeState):
                     "batch_detail": None,
                 }
                 state.settlement_logs.insert(0, log_entry)
+                session_db.record_event(
+                    session_id=state.session_id,
+                    event_type="SETTLEMENT_BLOCKED",
+                    batch_id=f"BLOCKED-QBER-{int(qber*100)}PCT",
+                    amount_usd=0.0,
+                    qber=qber,
+                    status="BLOCKED",
+                    details={"reason": f"QBER {qber*100:.1f}% >= threshold {state.qber_threshold*100:.1f}%"}
+                )
                 print(f"\n[⛔ SETTLEMENT BLOCKED - BANK A] Eavesdropper detected on quantum link! QBER: {qber*100:.1f}% >= threshold {state.qber_threshold*100:.1f}%. Transmission aborted — 0 bytes exposed.")
                 await state.broadcast_ui_update()
                 return
@@ -564,6 +638,15 @@ async def run_settlement_round(state: NodeState):
                     "batch_detail": batch.to_dict(),
                 }
                 state.settlement_logs.insert(0, log_entry)
+                session_db.record_event(
+                    session_id=state.session_id,
+                    event_type="SETTLEMENT_SUCCESS",
+                    batch_id=batch.batch_id,
+                    amount_usd=float(batch.total_amount),
+                    qber=qber,
+                    status="SETTLED",
+                    details=batch.to_dict()
+                )
                 print(f"\n[✓ SETTLEMENT CONFIRMED - BANK A] Batch {batch.batch_id} | Amount: ${batch.total_amount:,.2f} | Tx: {batch.transaction_count} | QBER: {qber*100:.1f}% (Clean)")
             else:
                 state.blocked_count += 1
@@ -582,6 +665,15 @@ async def run_settlement_round(state: NodeState):
                     "batch_detail": batch.to_dict(),
                 }
                 state.settlement_logs.insert(0, log_entry)
+                session_db.record_event(
+                    session_id=state.session_id,
+                    event_type="SETTLEMENT_BLOCKED",
+                    batch_id=batch.batch_id,
+                    amount_usd=float(batch.total_amount),
+                    qber=qber,
+                    status="BLOCKED",
+                    details={"error": tx_res.text}
+                )
                 print(f"\n[⛔ PAYLOAD BLOCKED - BANK A] Receiver rejected payload: {tx_res.text}")
 
             await state.broadcast_ui_update()
@@ -603,6 +695,15 @@ async def run_settlement_round(state: NodeState):
                 "batch_detail": None,
             }
             state.settlement_logs.insert(0, log_entry)
+            session_db.record_event(
+                session_id=state.session_id,
+                event_type="SETTLEMENT_BLOCKED",
+                batch_id="ERROR",
+                amount_usd=0.0,
+                qber=state.latest_qber,
+                status="ERROR",
+                details={"error": str(exc)}
+            )
             print(f"\n[⛔ SETTLEMENT ERROR - BANK A] {str(exc)}")
             await state.broadcast_ui_update()
 
