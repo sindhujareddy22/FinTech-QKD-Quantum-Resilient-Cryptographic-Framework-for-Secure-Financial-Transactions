@@ -1,5 +1,5 @@
 """
-Storage module for QKD-FinTech session audit logging and database management.
+Storage module for QKD-FinTech session audit logging and database management (INR / ₹).
 Stores full session histories, cryptographic metrics, and forensic event logs using SQLite.
 """
 
@@ -42,7 +42,8 @@ class SessionDatabase:
                     peer_port INTEGER NOT NULL,
                     total_batches_settled INTEGER DEFAULT 0,
                     total_batches_blocked INTEGER DEFAULT 0,
-                    total_volume_usd REAL DEFAULT 0.0,
+                    total_volume_inr REAL DEFAULT 0.0,
+                    currency TEXT DEFAULT 'INR',
                     threats_detected INTEGER DEFAULT 0,
                     threats_disarmed INTEGER DEFAULT 0,
                     qkd_keys_exchanged INTEGER DEFAULT 0,
@@ -53,6 +54,16 @@ class SessionDatabase:
                 )
             """)
 
+            # Auto-migrate legacy column if needed
+            try:
+                cursor.execute("ALTER TABLE sessions ADD COLUMN total_volume_inr REAL DEFAULT 0.0")
+            except Exception:
+                pass
+            try:
+                cursor.execute("ALTER TABLE sessions ADD COLUMN currency TEXT DEFAULT 'INR'")
+            except Exception:
+                pass
+
             # 2. Session Events Table (Granular Event Trace)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS session_events (
@@ -61,13 +72,23 @@ class SessionDatabase:
                     timestamp TEXT NOT NULL,
                     event_type TEXT NOT NULL,
                     batch_id TEXT,
-                    amount_usd REAL DEFAULT 0.0,
+                    amount_inr REAL DEFAULT 0.0,
+                    currency TEXT DEFAULT 'INR',
                     qber REAL DEFAULT 0.0,
                     status TEXT,
                     details TEXT,
                     FOREIGN KEY (session_id) REFERENCES sessions (session_id) ON DELETE CASCADE
                 )
             """)
+
+            try:
+                cursor.execute("ALTER TABLE session_events ADD COLUMN amount_inr REAL DEFAULT 0.0")
+            except Exception:
+                pass
+            try:
+                cursor.execute("ALTER TABLE session_events ADD COLUMN currency TEXT DEFAULT 'INR'")
+            except Exception:
+                pass
 
             conn.commit()
 
@@ -97,8 +118,8 @@ class SessionDatabase:
                 cursor.execute("""
                     INSERT INTO sessions (
                         session_id, start_time, end_time, role, node_name,
-                        host, port, peer_host, peer_port, status
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')
+                        host, port, peer_host, peer_port, status, currency
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE', 'INR')
                 """, (session_id, now_iso, now_iso, role, node_name, host, port, peer_host, peer_port))
                 conn.commit()
 
@@ -109,12 +130,15 @@ class SessionDatabase:
         session_id: str,
         event_type: str,
         batch_id: Optional[str] = None,
-        amount_usd: float = 0.0,
+        amount_inr: float = 0.0,
+        amount_usd: Optional[float] = None,
+        currency: str = "INR",
         qber: float = 0.0,
         status: Optional[str] = None,
         details: Optional[Dict[str, Any]] = None
     ):
-        """Records an event and automatically updates session summary aggregates."""
+        """Records an event and automatically updates session summary aggregates in INR (₹)."""
+        actual_amt = amount_inr if amount_inr > 0 else (amount_usd or 0.0)
         now_iso = datetime.datetime.now().isoformat()
         details_str = json.dumps(details) if details else "{}"
 
@@ -124,9 +148,9 @@ class SessionDatabase:
             # Insert event
             cursor.execute("""
                 INSERT INTO session_events (
-                    session_id, timestamp, event_type, batch_id, amount_usd, qber, status, details
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (session_id, now_iso, event_type, batch_id, amount_usd, qber, status, details_str))
+                    session_id, timestamp, event_type, batch_id, amount_inr, currency, qber, status, details
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (session_id, now_iso, event_type, batch_id, actual_amt, currency, qber, status, details_str))
 
             # Update session aggregates based on event type
             if event_type == "SETTLEMENT_SUCCESS":
@@ -134,11 +158,11 @@ class SessionDatabase:
                     UPDATE sessions SET
                         end_time = ?,
                         total_batches_settled = total_batches_settled + 1,
-                        total_volume_usd = total_volume_usd + ?,
+                        total_volume_inr = total_volume_inr + ?,
                         qkd_keys_exchanged = qkd_keys_exchanged + 1,
                         status = 'ACTIVE'
                     WHERE session_id = ?
-                """, (now_iso, amount_usd, session_id))
+                """, (now_iso, actual_amt, session_id))
 
             elif event_type == "SETTLEMENT_BLOCKED":
                 cursor.execute("""
@@ -194,7 +218,13 @@ class SessionDatabase:
                 LIMIT ?
             """, (limit,))
             rows = cursor.fetchall()
-            return [dict(row) for row in rows]
+            result = []
+            for row in rows:
+                d = dict(row)
+                if "total_volume_inr" not in d or d["total_volume_inr"] is None:
+                    d["total_volume_inr"] = d.get("total_volume_usd", 0.0)
+                result.append(d)
+            return result
 
     def get_session_details(self, session_id: str) -> Optional[Dict[str, Any]]:
         """Returns full session summary along with all historical events."""
@@ -213,9 +243,14 @@ class SessionDatabase:
             event_rows = cursor.fetchall()
 
             session_data = dict(session_row)
+            if "total_volume_inr" not in session_data or session_data["total_volume_inr"] is None:
+                session_data["total_volume_inr"] = session_data.get("total_volume_usd", 0.0)
+
             events = []
             for ev in event_rows:
                 ev_dict = dict(ev)
+                if "amount_inr" not in ev_dict or ev_dict["amount_inr"] is None:
+                    ev_dict["amount_inr"] = ev_dict.get("amount_usd", 0.0)
                 try:
                     ev_dict["details"] = json.loads(ev_dict["details"]) if ev_dict["details"] else {}
                 except Exception:

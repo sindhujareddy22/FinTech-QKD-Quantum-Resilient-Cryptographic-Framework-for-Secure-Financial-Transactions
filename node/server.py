@@ -440,7 +440,8 @@ def create_node_app(role: str, host: str, port: int, peer_host: str, peer_port: 
                 session_id=state.session_id,
                 event_type="SETTLEMENT_SUCCESS",
                 batch_id=batch_data.get("batch_id"),
-                amount_usd=float(batch_data.get("total_amount", 0)),
+                amount_inr=float(batch_data.get("total_amount", 0)),
+                currency="INR",
                 qber=state.latest_qber,
                 status="SETTLED",
                 details=batch_data
@@ -471,7 +472,8 @@ def create_node_app(role: str, host: str, port: int, peer_host: str, peer_port: 
                 session_id=state.session_id,
                 event_type="SETTLEMENT_BLOCKED",
                 batch_id="REJECTED-TAMPERED",
-                amount_usd=0.0,
+                amount_inr=0.0,
+                currency="INR",
                 qber=state.latest_qber,
                 status="BLOCKED",
                 details={"error": str(exc)}
@@ -569,7 +571,8 @@ async def run_settlement_round(state: NodeState, manual_batch_data: Optional[Dic
                     session_id=state.session_id,
                     event_type="SETTLEMENT_BLOCKED",
                     batch_id=f"BLOCKED-QBER-{int(qber*100)}PCT",
-                    amount_usd=0.0,
+                    amount_inr=0.0,
+                    currency="INR",
                     qber=qber,
                     status="BLOCKED",
                     details={"reason": f"QBER {qber*100:.1f}% >= threshold {state.qber_threshold*100:.1f}%"}
@@ -658,7 +661,8 @@ async def run_settlement_round(state: NodeState, manual_batch_data: Optional[Dic
                     session_id=state.session_id,
                     event_type="SETTLEMENT_SUCCESS",
                     batch_id=batch.batch_id,
-                    amount_usd=float(batch.total_amount),
+                    amount_inr=float(batch.total_amount),
+                    currency="INR",
                     qber=qber,
                     status="SETTLED",
                     details=batch.to_dict()
@@ -685,7 +689,8 @@ async def run_settlement_round(state: NodeState, manual_batch_data: Optional[Dic
                     session_id=state.session_id,
                     event_type="SETTLEMENT_BLOCKED",
                     batch_id=batch.batch_id,
-                    amount_usd=float(batch.total_amount),
+                    amount_inr=float(batch.total_amount),
+                    currency="INR",
                     qber=qber,
                     status="BLOCKED",
                     details={"error": tx_res.text}
@@ -715,7 +720,8 @@ async def run_settlement_round(state: NodeState, manual_batch_data: Optional[Dic
                 session_id=state.session_id,
                 event_type="SETTLEMENT_BLOCKED",
                 batch_id="ERROR",
-                amount_usd=0.0,
+                amount_inr=0.0,
+                currency="INR",
                 qber=state.latest_qber,
                 status="ERROR",
                 details={"error": str(exc)}

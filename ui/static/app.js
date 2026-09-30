@@ -788,7 +788,7 @@ function renderSessionsList(sessions) {
                 </div>
                 <div class="session-list-meta">
                     <span>${s.node_name || s.role} &bull; ${dateStr}</span>
-                    <span class="session-list-vol">$${(s.total_volume_usd || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                    <span class="session-list-vol">₹${(s.total_volume_inr || s.total_volume_usd || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                 </div>
                 <div class="session-list-counts">
                     <span>✓ ${s.total_batches_settled || 0} Settled</span>
@@ -847,7 +847,7 @@ async function viewSessionDetail(sessionId) {
             <div class="session-metrics-grid">
                 <div class="session-metric-card">
                     <span class="session-mc-label">TOTAL SETTLED VOLUME</span>
-                    <span class="session-mc-val text-cyan">$${(s.total_volume_usd || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                    <span class="session-mc-val text-cyan">₹${(s.total_volume_inr || s.total_volume_usd || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                 </div>
                 <div class="session-metric-card">
                     <span class="session-mc-label">SETTLED BATCHES</span>
@@ -876,7 +876,7 @@ async function viewSessionDetail(sessionId) {
                                 <th>TIME</th>
                                 <th>EVENT TYPE</th>
                                 <th>BATCH / IDENTIFIER</th>
-                                <th>AMOUNT (USD)</th>
+                                <th>AMOUNT (INR / ₹)</th>
                                 <th>QBER</th>
                                 <th>STATUS</th>
                                 <th>DETAILS</th>
@@ -894,7 +894,8 @@ async function viewSessionDetail(sessionId) {
                                 else if (ev.event_type.includes("ATTACK")) typeClass = "attack";
                                 else if (ev.event_type.includes("DISARM")) typeClass = "disarm";
 
-                                const amtStr = ev.amount_usd > 0 ? `$${ev.amount_usd.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : "-";
+                                const amtVal = (ev.amount_inr !== undefined && ev.amount_inr !== null && ev.amount_inr > 0) ? ev.amount_inr : (ev.amount_usd || 0);
+                                const amtStr = amtVal > 0 ? `₹${amtVal.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : "-";
                                 const qberStr = ev.qber > 0 ? `${(ev.qber * 100).toFixed(1)}%` : "0.0%";
                                 const detStr = typeof ev.details === "object" ? JSON.stringify(ev.details) : (ev.details || "-");
 
